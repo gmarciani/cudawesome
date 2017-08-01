@@ -1,20 +1,24 @@
-/*******************************************************************************
-* @Program: hello_world.cu
-* @Description: The classic Hello World.
-*
-* @Author: Giacomo Marciani <gmarciani@acm.org>
-* @Institution: University of Rome Tor Vergata
-*******************************************************************************/
+/*
+ * @Program: hello_world.cu
+ * @Description: The classic Hello World.
+ *
+ * @Author: Giacomo Marciani <gmarciani@acm.org>
+ * @Institution: University of Rome Tor Vergata
+ */
 
 #include <stdlib.h>
 #include <stdio.h>
 
-__global__ void kernel(void) {
+__global__ void foo(void) {
 
 }
 
 int main(void) {
-  kernel<<< 1, 1 >>>();
+  // launch foo() kernel
+  foo<<< 1, 1 >>>();
+
+  // print result
   printf("Hello world!\n");
+
   return 0;
 }
