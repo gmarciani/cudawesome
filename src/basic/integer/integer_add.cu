@@ -1,5 +1,5 @@
 /*
- * @Name: addint.cu
+ * @Name: integer_add.cu
  * @Description: Integer addition.
  * Arguments passed as values.
  *
@@ -27,8 +27,10 @@ int main(void) {
   // copy device result back to host copy of c
   HANDLE_ERROR(cudaMemcpy(&c, dev_c, sizeof(int), cudaMemcpyDeviceToHost));
 
-  // print result
-  printf("2 + 7 = %d\n", c);
+  // test result
+  if (c != 9) {
+    fprintf(stderr, "Error: expected 9, got %d\n", c);
+  }
 
   // free device
   HANDLE_ERROR(cudaFree(dev_c));

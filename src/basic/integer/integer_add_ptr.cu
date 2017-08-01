@@ -1,5 +1,5 @@
 /*
- * @Name: addint_ptr.cu
+ * @Name: integer_add_ptr.cu
  * @Description: Integer addition.
  * Arguments passed as pointers.
  * One block, one thread.
@@ -22,26 +22,28 @@ int main(void) {
   int size = sizeof(int);     // bytes for and integer
 
   // allocate device copies of a, b, c
-  cudaMalloc((void**)&dev_a, size);
-  cudaMalloc((void**)&dev_b, size);
-  cudaMalloc((void**)&dev_c, size);
+  HANDLE_ERROR(cudaMalloc((void**)&dev_a, size));
+  HANDLE_ERROR(cudaMalloc((void**)&dev_b, size));
+  HANDLE_ERROR(cudaMalloc((void**)&dev_c, size));
 
   // set host values of a, b
   a = 2;
   b = 7;
 
   // copy inputs to device
-  cudaMemcpy(dev_a, &a, size, cudaMemcpyHostToDevice);
-  cudaMemcpy(dev_b, &b, size, cudaMemcpyHostToDevice);
+  HANDLE_ERROR(cudaMemcpy(dev_a, &a, size, cudaMemcpyHostToDevice));
+  HANDLE_ERROR(cudaMemcpy(dev_b, &b, size, cudaMemcpyHostToDevice));
 
   // launch add() kernel
-  add<<<1, 1>>>(dev_a, dev_b, dev_c);
+  add<<< 1, 1 >>>(dev_a, dev_b, dev_c);
 
   // copy device result back to host copy of c
-  cudaMemcpy(&c, dev_c, size, cudaMemcpyDeviceToHost);
+  HANDLE_ERROR(cudaMemcpy(&c, dev_c, size, cudaMemcpyDeviceToHost));
 
-  // print result
-  printf("2 + 7 = %d\n", c);
+  // test result
+  if (c != 9) {
+    fprintf(stderr, "Error: expected 9, got %d\n", c);
+  }
 
   // free device
   HANDLE_ERROR(cudaFree(dev_a));
