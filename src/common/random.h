@@ -15,9 +15,9 @@ static void random_ints(int *p, int n) {
   }
 }
 
-static void random_matrix_int(int *p, int rows, int cols) {
-  for(int row = 0; row < rows; rows++) {
-    for(int col = 0; col < cols; col++) {
+static void random_matrix_int(double *p, int rows, int cols) {
+  for (int row = 0; row < rows; row++) {
+    for (int col = 0; col < cols; col++) {
       p[row * cols + col] = rand();
     }
   }

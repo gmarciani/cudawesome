@@ -88,9 +88,11 @@ int main(const int argc, const char **argv) {
     gridSize += 1;
   }
 
-  unsigned int sharedMemsize = (unsigned int) vectorDim * sizeof(int);
+  // shared memory settings
+  unsigned int sharedMemSize = (unsigned int) vectorDim * sizeof(int);
+
   // launch dot() kernel
-  dot<<< gridSize, blockSize, sharedMemsize >>>(dev_a, dev_b, dev_c, vectorDim);
+  dot<<< gridSize, blockSize, sharedMemSize >>>(dev_a, dev_b, dev_c, vectorDim);
 
   // copy device result back to host copy of c
   HANDLE_ERROR(cudaMemcpy(c, dev_c, sizeof(int), cudaMemcpyDeviceToHost));

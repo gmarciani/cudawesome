@@ -61,9 +61,9 @@ int main(const int argc, const char **argv) {
   size = matrixDim * matrixDim * sizeof(int);
 
   // allocate host copy of a, b, c
-  a = HANDLE_NULL((int*)malloc(size));
-  b = HANDLE_NULL((int*)malloc(size));
-  c = HANDLE_NULL((int*)malloc(size));
+  HANDLE_NULL(a = (int*)malloc(size));
+  HANDLE_NULL(b = (int*)malloc(size));
+  HANDLE_NULL(c = (int*)malloc(size));
 
   // allocate device copy of a, b, c
   HANDLE_ERROR(cudaMalloc((void**)&dev_a, size));
@@ -71,8 +71,8 @@ int main(const int argc, const char **argv) {
   HANDLE_ERROR(cudaMalloc((void**)&dev_c, size));
 
   // fill a, b with random integers
-  random_matrix_int(a, matrixDim, matrixDim)
-  random_matrix_int(b, matrixDim, matrixDim)
+  random_matrix_int(a, matrixDim, matrixDim);
+  random_matrix_int(b, matrixDim, matrixDim);
 
   // grid settings
   dim3 gridDim, blockDim;
@@ -92,17 +92,22 @@ int main(const int argc, const char **argv) {
   HANDLE_ERROR(cudaMemcpy(c, dev_c, size, cudaMemcpyDeviceToHost));
 
   // test result
-  int *d = HANDLE_NULL((int*)malloc(size));
+  int *d;
+  HANDLE_NULL(d = (int*)malloc(size));
   matrix_mul(a, b, d, matrixDim, matrixDim, matrixDim);
+  int i;
   for (int y = 0; y < matrixDim; y++) {
     for (int x = 0; x < matrixDim; x++) {
-      int idx = y * matrixDim + x;
-      if (c[idx] != d[idx]) {
+      i = y * matrixDim + x;
+      if (c[i] != d[i]) {
         fprintf(stderr, "Error: (%d,%d) expected %d, got %d\n",
-        x, y, d[idx], c[idx]);
+        x, y, d[i], c[i]);
         break;
       }
     }
+  }
+  if (i == matrixDim * matrixDim) {
+    printf("Correct\n");
   }
 
   // free host
