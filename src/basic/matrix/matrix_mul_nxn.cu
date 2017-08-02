@@ -13,9 +13,9 @@
 
 #include <stdio.h>
 #include <math.h>
-#include <../common/error.h>
-#include <../common/random.h>
-#include <../common/matrix.h>
+#include "../../common/error.h"
+#include "../../common/random.h"
+#include "../../common/matrix.h"
 
 __global__ void mul(int *a, int *b, int *c, int dim) {
   int iX = blockIdx.x * blockDim.x + threadIdx.x;

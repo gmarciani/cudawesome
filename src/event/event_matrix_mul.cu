@@ -11,9 +11,9 @@
 
 #include <stdio.h>
 #include <math.h>
-#include <../common/error.h>
-#include <../common/random.h>
-#include <../common/matrix.h>
+#include "../common/error.h"
+#include "../common/random.h"
+#include "../common/matrix.h"
 
 #define MAX_MATRIX_DIM 16
 

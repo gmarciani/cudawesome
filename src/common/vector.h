@@ -11,7 +11,7 @@
 
 static void vector_add(int *a, int *b, int *c, int dim) {
   for (int i = 0; i < dim; i++) {
-    *c += a[i] + b[i];
+    c[i] = a[i] + b[i];
   }
 }
 

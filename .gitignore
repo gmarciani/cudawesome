@@ -9,6 +9,7 @@
 # Project specific
 #==============================================================================#
 _ignore
+sync.sh
 
 #==============================================================================#
 #CMAKE
@@ -17,7 +18,7 @@ CMakeCache.txt
 CMakeFiles
 CMakeScripts
 Testing
-Makefile
+#Makefile
 cmake_install.cmake
 install_manifest.txt
 compile_commands.json

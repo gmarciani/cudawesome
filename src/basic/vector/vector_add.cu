@@ -1,5 +1,5 @@
 /*
- * @Name: vector_add_blocks_threads.cu
+ * @Name: vector_add.cu
  * @Description: Addition of two integer vectors.
  * Custom vector dimension and block size.
  *
@@ -11,9 +11,9 @@
 
 #include <stdio.h>
 #include <math.h>
-#include <../common/error.h>
-#include <../common/random.h>
-#include <../common/vector.h>
+#include "../../common/error.h"
+#include "../../common/random.h"
+#include "../../common/vector.h"
 
 __global__ void add(int *a, int *b, int *c, int dim) {
   int idx = blockIdx.x * blockDim.x + threadIdx.x;
@@ -52,9 +52,9 @@ int main(const int argc, const char **argv) {
   size = vectorDim * sizeof(int);
 
   // allocate host copies of a, b, c
-  a = HANDLE_NULL((int*)malloc(size));
-  b = HANDLE_NULL((int*)malloc(size));
-  c = HANDLE_NULL((int*)malloc(size));
+  HANDLE_NULL(a = (int*)malloc(size));
+  HANDLE_NULL(b = (int*)malloc(size));
+  HANDLE_NULL(c = (int*)malloc(size));
 
   // allocate device copies of a, b, c
   HANDLE_ERROR(cudaMalloc((void**)&dev_a, size));
@@ -80,13 +80,18 @@ int main(const int argc, const char **argv) {
   HANDLE_ERROR(cudaMemcpy(c, dev_c, size, cudaMemcpyDeviceToHost));
 
   // test result
-  int *d = HANDLE_NULL((int*)malloc(size));
+  int *d;
+  HANDLE_NULL(d = (int*)malloc(size));
   vector_add(a, b, d, vectorDim);
-  for (int i = 0; i < vectorDim; i++) {
+  int i;
+  for (i = 0; i < vectorDim; i++) {
     if (c[i] != d[i]) {
-      printf("Error: [%d] expected %d, got %d\n", i, d, c[i]);
+      fprintf(stderr, "Error: [%d] expected %d, got %d\n", i, d, c[i]);
       break;
     }
+  }
+  if (i == vectorDim) {
+    printf("Correct\n");
   }
 
   // free host

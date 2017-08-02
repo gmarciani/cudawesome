@@ -9,9 +9,9 @@
 
 #include <stdio.h>
 #include <math.h>
-#include <../common/error.h>
-#include <../common/random.h>
-#include <../common/vector.h>
+#include "../../common/error.h"
+#include "../../common/random.h"
+#include "../../common/vector.h"
 
 #define VECTOR_DIM 512
 #define BLOCK_SIZE 16
@@ -27,9 +27,9 @@ int main(void) {
   int size = VECTOR_DIM * sizeof(int); // bytes for an array of VECTOR_DIM integers
 
   // allocate host copies of a, b, c
-  a = HANDLE_NULL((int*)malloc(size));
-  b = HANDLE_NULL((int*)malloc(size));
-  c = HANDLE_NULL((int*)malloc(size));
+  HANDLE_NULL(a = (int*)malloc(size));
+  HANDLE_NULL(b = (int*)malloc(size));
+  HANDLE_NULL(c = (int*)malloc(size));
 
   // allocate device copies of a, b, c
   HANDLE_ERROR(cudaMalloc((void**)&dev_a, size));
@@ -51,13 +51,18 @@ int main(void) {
   HANDLE_ERROR(cudaMemcpy(c, dev_c, size, cudaMemcpyDeviceToHost));
 
   // test result
-  int *d = HANDLE_NULL((int*)malloc(size));
-  vector_add(a, b, d, vectorDim);
-  for (int i = 0; i < vectorDim; i++) {
+  int *d;
+  HANDLE_NULL(d = (int*)malloc(size));
+  vector_add(a, b, d, VECTOR_DIM);
+  int i;
+  for (i = 0; i < VECTOR_DIM; i++) {
     if (c[i] != d[i]) {
-      printf("Error: [%d] expected %d, got %d\n", i, d, c[i]);
+      fprintf(stderr, "Error: [%d] expected %d, got %d\n", i, d, c[i]);
       break;
     }
+  }
+  if (i == VECTOR_DIM) {
+    printf("Correct\n");
   }
 
   // free host

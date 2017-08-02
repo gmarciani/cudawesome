@@ -9,13 +9,14 @@
 
 #include <stdio.h>
 #include <math.h>
-#include <../common/error.h>
-#include <../common/random.h>
+#include "../../common/error.h"
+#include "../../common/random.h"
+#include "../../common/vector.h"
 
 #define VECTOR_DIM 512
 
 __global__ void dot(int *a, int *b, int *c) {
-  __shared__ int temp[N];
+  __shared__ int temp[VECTOR_DIM];
 
   temp[threadIdx.x] = a[threadIdx.x] * b[threadIdx.x];
 
@@ -23,23 +24,22 @@ __global__ void dot(int *a, int *b, int *c) {
 
   if (0 == threadIdx.x) {
     int sum = 0;
-    for (int i = N - 1; i >=0; i--) {
+    for (int i = VECTOR_DIM - 1; i >= 0; i--) {
       sum += temp[i];
     }
+    *c = sum;
   }
-
-  *c = sum;
 }
 
 int main(void) {
-  int *a, *b, c;              // host copies of a, b, c
+  int *a, *b, *c;             // host copies of a, b, c
   int *dev_a, *dev_b, *dev_c; // device copies of a, b, c
   int size = VECTOR_DIM * sizeof(int); // bytes for an array of VECTOR_DIM integers
 
   // allocate host copies of a, b, c
-  a = HANDLE_NULL((int*)malloc(size));
-  b = HANDLE_NULL((int*)malloc(size));
-  c = HANDLE_NULL((int*)malloc(sizeof(int)));
+  HANDLE_NULL(a = (int*)malloc(size));
+  HANDLE_NULL(b = (int*)malloc(size));
+  HANDLE_NULL(c = (int*)malloc(sizeof(int)));
 
   // allocate device copies of a, b, c
   HANDLE_ERROR(cudaMalloc((void**)&dev_a, size));
@@ -54,19 +54,19 @@ int main(void) {
   HANDLE_ERROR(cudaMemcpy(dev_a, a, size, cudaMemcpyHostToDevice));
   HANDLE_ERROR(cudaMemcpy(dev_b, b, size, cudaMemcpyHostToDevice));
 
-  // launch add() kernel
+  // launch dot() kernel
   dot<<< 1, VECTOR_DIM >>>(dev_a, dev_b, dev_c);
 
   // copy device result back to host copy of c
   HANDLE_ERROR(cudaMemcpy(c, dev_c, sizeof(int), cudaMemcpyDeviceToHost));
 
   // test result
-  int d = 0;
-  for(int i = 0; i < N; i++) {
-    d += a[i] * b[i];
-  }
+  int d;
+  vector_dot(a, b, &d, VECTOR_DIM);
   if (*c != d) {
-    printf("Error: expected %d, got %d\n", d, *c);
+    fprintf(stderr, "Error: expected %d, got %d\n", d, *c);
+  } else {
+    printf("Correct\n");
   }
 
   // free host

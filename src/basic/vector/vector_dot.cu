@@ -11,12 +11,12 @@
 
 #include <stdio.h>
 #include <math.h>
-#include <../common/error.h>
-#include <../common/random.h>
-#include <../common/vector.h>
+#include "../../common/error.h"
+#include "../../common/random.h"
+#include "../../common/vector.h"
 
 __global__ void dot(int *a, int *b, int *c, int dim) {
-  __shared__ int temp[dim];
+  extern __shared__ int temp[];
 
   int idx = threadIdx.x + blockIdx.x * blockDim.x;
 
@@ -27,12 +27,11 @@ __global__ void dot(int *a, int *b, int *c, int dim) {
 
     if (0 == threadIdx.x) {
       int sum = 0;
-      for (int i = N - 1; i >=0; i--) {
+      for (int i = dim - 1; i >= 0; i--) {
         sum += temp[i];
       }
+      atomicAdd(c, sum);
     }
-
-    atomicAdd(c, sum);
   }
 }
 
@@ -65,15 +64,14 @@ int main(const int argc, const char **argv) {
   size = vectorDim * sizeof(int);
 
   // allocate host copies of a, b, c
-  a = HANDLE_NULL((int*)malloc(size));
-  b = HANDLE_NULL((int*)malloc(size));
-  c = HANDLE_NULL((int*)malloc(sizeof(int)));
+  HANDLE_NULL(a = (int*)malloc(size));
+  HANDLE_NULL(b = (int*)malloc(size));
+  HANDLE_NULL(c = (int*)malloc(sizeof(int)));
 
   // allocate device copies of a, b, c
   HANDLE_ERROR(cudaMalloc((void**)&dev_a, size));
   HANDLE_ERROR(cudaMalloc((void**)&dev_b, size));
   HANDLE_ERROR(cudaMalloc((void**)&dev_c, sizeof(int)));
-
 
   // fill a and b with vectorDim random integers
   random_ints(a, vectorDim);
@@ -82,24 +80,28 @@ int main(const int argc, const char **argv) {
   // copy inputs to device
   HANDLE_ERROR(cudaMemcpy(dev_a, a, size, cudaMemcpyHostToDevice));
   HANDLE_ERROR(cudaMemcpy(dev_b, b, size, cudaMemcpyHostToDevice));
+  HANDLE_ERROR(cudaMemset(dev_c, 0, sizeof(int)));
 
-  // launch add() kernel
+  // grid settings
   gridSize = vectorDim / blockSize;
   if (gridSize * blockSize < vectorDim) {
     gridSize += 1;
   }
-  dot<<< gridSize, blockSize >>>(dev_a, dev_b, dev_c, vectorDim);
+
+  unsigned int sharedMemsize = (unsigned int) vectorDim * sizeof(int);
+  // launch dot() kernel
+  dot<<< gridSize, blockSize, sharedMemsize >>>(dev_a, dev_b, dev_c, vectorDim);
 
   // copy device result back to host copy of c
   HANDLE_ERROR(cudaMemcpy(c, dev_c, sizeof(int), cudaMemcpyDeviceToHost));
 
   // test result
-  int d = 0;
-  for(int i = 0; i < N; i++) {
-    d += a[i] * b[i];
-  }
+  int d;
+  vector_dot(a, b, &d, vectorDim);
   if (*c != d) {
-    printf("Error: expected %d, got %d\n", d, *c);
+    fprintf(stderr, "Error: expected %d, got %d\n", d, *c);
+  } else {
+    printf("Correct\n");
   }
 
   // free host

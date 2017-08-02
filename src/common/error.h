@@ -11,7 +11,7 @@
 
 static void handleError(cudaError_t err, const char *file, int line) {
   if (err != cudaSuccess) {
-    printf("%s in %s at line %d\n",
+    fprintf(stderr, "%s in %s at line %d\n",
     cudaGetErrorString(err), file, line);
     exit(EXIT_FAILURE);
   }
@@ -19,10 +19,9 @@ static void handleError(cudaError_t err, const char *file, int line) {
 
 #define HANDLE_ERROR(err) (handleError(err, __FILE__, __LINE__))
 
-
-#define HANDLE_NULL(a) {if (a == NULL) { \
-                          printf("Host memory failed in %s at line %d\n", \
-                            __FILE__, __LINE__); \
-                          exit(EXIT_FAILURE);}}
+#define HANDLE_NULL(a) {if ((a) == NULL) { \
+                            fprintf(stderr, "Host memory failed in %s at line %d\n", \
+                                    __FILE__, __LINE__); \
+                            exit( EXIT_FAILURE );}}
 
 #endif  // __ERROR_H__
