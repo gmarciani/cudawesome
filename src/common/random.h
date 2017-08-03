@@ -11,13 +11,13 @@
 
 static void random_matrix_double(double *a, int rows, int cols) {
   for (int i = 0; i < rows * cols; i++) {
-    a[i] = rand();
+    a[i] = (double) rand();
   }
 }
 
 static void random_matrix_float(float *a, int rows, int cols) {
   for (int i = 0; i < rows * cols; i++) {
-    a[i] = rand();
+    a[i] = (float) rand();
   }
 }
 
@@ -29,25 +29,25 @@ static void random_matrix_int(int *a, int rows, int cols) {
 
 static void random_matrix_long(long *a, int rows, int cols) {
   for (int i = 0; i < rows * cols; i++) {
-    a[i] = rand();
+    a[i] = (long) rand();
   }
 }
 
 static void random_matrix_short(short *a, int rows, int cols) {
   for (int i = 0; i < rows * cols; i++) {
-    a[i] = rand();
+    a[i] = (short )rand();
   }
 }
 
 static void random_vector_double(double *a, int n) {
   for (int i = 0; i < n; i++) {
-    a[i] = rand();
+    a[i] = (double) rand();
   }
 }
 
 static void random_vector_float(float *a, int n) {
   for (int i = 0; i < n; i++) {
-    a[i] = rand();
+    a[i] = (float) rand();
   }
 }
 
@@ -59,13 +59,13 @@ static void random_vector_int(int *a, int n) {
 
 static void random_vector_long(long *a, int n) {
   for (int i = 0; i < n; i++) {
-    a[i] = rand();
+    a[i] = (long) rand();
   }
 }
 
 static void random_vector_short(short *a, int n) {
   for (int i = 0; i < n; i++) {
-    a[i] = rand();
+    a[i] = (short) rand();
   }
 }
 
