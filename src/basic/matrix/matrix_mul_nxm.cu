@@ -17,15 +17,15 @@
 #include "../../common/random.h"
 #include "../../common/matrix.h"
 
-__global__ void mul(int *a, int *b, int *c, int dimX1, int dimY1, int dimX2) {
+__global__ void mul(double *a, double *b, double *c, int dimX1, int dimY1, int dimX2) {
   int iX = blockIdx.x * blockDim.x + threadIdx.x;
   int iY = blockIdx.y * blockDim.y + threadIdx.y;
 
   if (iX < dimX2 && iY < dimY1) {
     int idx = iY * dimX2 + iX;
-    int val = 0;
+    double val = 0;
     for (int k = 0; k < dimX1; k++) {
-      val += a[iY * dim + k] * b[k * dim + iX];
+      val += a[iY * dimX1 + k] * b[k * dimX2 + iX];
     }
 
     c[idx] = val;
@@ -33,9 +33,9 @@ __global__ void mul(int *a, int *b, int *c, int dimX1, int dimY1, int dimX2) {
 }
 
 int main(const int argc, const char **argv) {
-  int *a, *b, *c;         // host copies of a, b, c
-  int *dev_a, *dev_b, *dev_c; // device copies of a, b, c
-  int size_a size_b, size_c; // bytes for a, b, c
+  double *a, *b, *c;         // host copies of a, b, c
+  double *dev_a, *dev_b, *dev_c; // device copies of a, b, c
+  int size_a, size_b, size_c; // bytes for a, b, c
   int matrixDimX1, matrixDimY1, matrixDimX2, matrixDimY2; // matrices dimensions
   int gridSizeX, gridSizeY; // grid size
   int blockSize; // block size
@@ -76,30 +76,34 @@ int main(const int argc, const char **argv) {
     exit(1);
   }
 
-  size_a = matrixDimX1 * matrixDimY1 * sizeof(int);
-  size_b = matrixDimX2 * matrixDimY2 * sizeof(int);
-  size_c = matrixDimY1 * matrixDimX2 * sizeof(int);
+  size_a = matrixDimX1 * matrixDimY1 * sizeof(double);
+  size_b = matrixDimX2 * matrixDimY2 * sizeof(double);
+  size_c = matrixDimY1 * matrixDimX2 * sizeof(double);
 
   // allocate host copy of a, b, c
-  HANDLE_NULL(a = (int*)malloc(size_a));
-  HANDLE_NULL(b = (int*)malloc(size_b));
-  HANDLE_NULL(c = (int*)malloc(size_c));
+  HANDLE_NULL(a = (double*)malloc(size_a));
+  HANDLE_NULL(b = (double*)malloc(size_b));
+  HANDLE_NULL(c = (double*)malloc(size_c));
 
   // allocate device copy of a, b, c
   HANDLE_ERROR(cudaMalloc((void**)&dev_a, size_a));
   HANDLE_ERROR(cudaMalloc((void**)&dev_b, size_b));
   HANDLE_ERROR(cudaMalloc((void**)&dev_c, size_c));
 
-  // fill a, b with random integers
-  random_matrix_int(a, matrixDimX1, matrixDimY1);
-  random_matrix_int(b, matrixDimX2, matrixDimY2);
+  // fill a, b with random data
+  random_matrix_double(a, matrixDimX1, matrixDimY1);
+  random_matrix_double(b, matrixDimX2, matrixDimY2);
+
+  // copy inputs to device
+  HANDLE_ERROR(cudaMemcpy(dev_a, a, size_a, cudaMemcpyHostToDevice));
+  HANDLE_ERROR(cudaMemcpy(dev_b, b, size_b, cudaMemcpyHostToDevice));
 
   // grid settings
   dim3 gridDim, blockDim;
   int maxDimX = max(matrixDimX1, matrixDimX2);
   gridSizeX = maxDimX / blockSize;
   if (gridSizeX * blockSize < maxDimX) {
-     gridSize += 1;
+     gridSizeX += 1;
   }
   int maxDimY = max(matrixDimY1, matrixDimY2);
   gridSizeY = maxDimY / blockSize;
@@ -115,24 +119,15 @@ int main(const int argc, const char **argv) {
   mul<<< gridDim, blockDim >>>(dev_a, dev_b, dev_c, matrixDimX1, matrixDimY1, matrixDimX2);
 
   // copy device result back to host copy of c
-  HANDLE_ERROR(cudaMemcpy(c, dev_c, size, cudaMemcpyDeviceToHost));
+  HANDLE_ERROR(cudaMemcpy(c, dev_c, size_c, cudaMemcpyDeviceToHost));
 
   // test result
-  int *d;
-  HANDLE_NULL(d = (int*)malloc(size));
-  matrix_mul(a, b, d, matrixDimX1, matrixDimY1, matrixDimX2);
-  int i;
-  for (int y = 0; y < matrixDimY1; y++) {
-    for (int x = 0; x < matrixDimX2; x++) {
-      int i = y * matrixDimX2 + x;
-      if (c[i] != d[i]) {
-        fprintf(stderr, "Error: (%d,%d) expected %d, got %d\n",
-        x, y, d[idx], c[idx]);
-        break;
-      }
-    }
-  }
-  if (i == matrixDimY1 * matrixDimX2) {
+  double *d;
+  HANDLE_NULL(d = (double*)malloc(size_c));
+  matrix_mul_double(a, b, d, matrixDimX1, matrixDimY1, matrixDimX2);
+  if (!matrix_equals_double(c, d, matrixDimX2, matrixDimY1)) {
+    fprintf(stderr, "Error\n");
+  } else {
     printf("Correct\n");
   }
 

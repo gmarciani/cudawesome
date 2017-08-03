@@ -36,38 +36,39 @@ __global__ void dot(int *a, int *b, int *c) {
 int main(void) {
   int *a, *b, *c;             // host copies of a, b, c
   int *dev_a, *dev_b, *dev_c; // device copies of a, b, c
-  int size = VECTOR_DIM * sizeof(int); // bytes for an array of VECTOR_DIM integers
+  int size = VECTOR_DIM * sizeof(int); // bytes for a, b
+  int size_c = sizeof(int); // bytes for c
 
   // allocate host copies of a, b, c
   HANDLE_NULL(a = (int*)malloc(size));
   HANDLE_NULL(b = (int*)malloc(size));
-  HANDLE_NULL(c = (int*)malloc(sizeof(int)));
+  HANDLE_NULL(c = (int*)malloc(size_c));
 
   // allocate device copies of a, b, c
   HANDLE_ERROR(cudaMalloc((void**)&dev_a, size));
   HANDLE_ERROR(cudaMalloc((void**)&dev_b, size));
-  HANDLE_ERROR(cudaMalloc((void**)&dev_c, sizeof(int)));
+  HANDLE_ERROR(cudaMalloc((void**)&dev_c, size_c));
 
-  // fill a and b with VECTOR_DIM random integers
-  random_ints(a, VECTOR_DIM);
-  random_ints(b, VECTOR_DIM);
+  // fill a and b with random data
+  random_vector_int(a, VECTOR_DIM);
+  random_vector_int(b, VECTOR_DIM);
 
   // copy inputs to device
   HANDLE_ERROR(cudaMemcpy(dev_a, a, size, cudaMemcpyHostToDevice));
   HANDLE_ERROR(cudaMemcpy(dev_b, b, size, cudaMemcpyHostToDevice));
-  HANDLE_ERROR(cudaMemset(dev_c, 0, sizeof(int)));
+  HANDLE_ERROR(cudaMemset(dev_c, 0, size_c));
 
   // launch dot() kernel
   dot<<< VECTOR_DIM / BLOCK_SIZE, BLOCK_SIZE >>>(dev_a, dev_b, dev_c);
 
   // copy device result back to host copy of c
-  HANDLE_ERROR(cudaMemcpy(c, dev_c, sizeof(int), cudaMemcpyDeviceToHost));
+  HANDLE_ERROR(cudaMemcpy(c, dev_c, size_c, cudaMemcpyDeviceToHost));
 
   // test result
   int d;
-  vector_dot(a, b, &d, VECTOR_DIM);
+  vector_dot_int(a, b, &d, VECTOR_DIM);
   if (*c != d) {
-    fprintf(stderr, "Error: expected %d, got %d\n", d, *c);
+    fprintf(stderr, "Error: expected %f, got %f\n", d, *c);
   } else {
     printf("Correct\n");
   }

@@ -16,29 +16,29 @@
 #define VECTOR_DIM 512
 #define BLOCK_SIZE 16
 
-__global__ void add(int *a, int *b, int *c) {
+__global__ void add(double *a, double *b, double *c) {
   int idx = blockIdx.x * blockDim.x + threadIdx.x;
   c[idx] = a[idx] + b[idx];
 }
 
 int main(void) {
-  int *a, *b, *c;             // host copies of a, b, c
-  int *dev_a, *dev_b, *dev_c; // device copies of a, b, c
-  int size = VECTOR_DIM * sizeof(int); // bytes for an array of VECTOR_DIM integers
+  double *a, *b, *c;             // host copies of a, b, c
+  double *dev_a, *dev_b, *dev_c; // device copies of a, b, c
+  int size = VECTOR_DIM * sizeof(double); // bytes for a, b, c
 
   // allocate host copies of a, b, c
-  HANDLE_NULL(a = (int*)malloc(size));
-  HANDLE_NULL(b = (int*)malloc(size));
-  HANDLE_NULL(c = (int*)malloc(size));
+  HANDLE_NULL(a = (double*)malloc(size));
+  HANDLE_NULL(b = (double*)malloc(size));
+  HANDLE_NULL(c = (double*)malloc(size));
 
   // allocate device copies of a, b, c
   HANDLE_ERROR(cudaMalloc((void**)&dev_a, size));
   HANDLE_ERROR(cudaMalloc((void**)&dev_b, size));
   HANDLE_ERROR(cudaMalloc((void**)&dev_c, size));
 
-  // fill a and b with VECTOR_DIM random integers
-  random_ints(a, VECTOR_DIM);
-  random_ints(b, VECTOR_DIM);
+  // fill a, b with random data
+  random_vector_double(a, VECTOR_DIM);
+  random_vector_double(b, VECTOR_DIM);
 
   // copy inputs to device
   HANDLE_ERROR(cudaMemcpy(dev_a, a, size, cudaMemcpyHostToDevice));
@@ -51,17 +51,12 @@ int main(void) {
   HANDLE_ERROR(cudaMemcpy(c, dev_c, size, cudaMemcpyDeviceToHost));
 
   // test result
-  int *d;
-  HANDLE_NULL(d = (int*)malloc(size));
-  vector_add(a, b, d, VECTOR_DIM);
-  int i;
-  for (i = 0; i < VECTOR_DIM; i++) {
-    if (c[i] != d[i]) {
-      fprintf(stderr, "Error: [%d] expected %d, got %d\n", i, d, c[i]);
-      break;
-    }
-  }
-  if (i == VECTOR_DIM) {
+  double *d;
+  HANDLE_NULL(d = (double*)malloc(size));
+  vector_add_double(a, b, d, VECTOR_DIM);
+  if (!vector_equals_double(c, d, VECTOR_DIM)) {
+    fprintf(stderr, "Error\n");
+  } else {
     printf("Correct\n");
   }
 

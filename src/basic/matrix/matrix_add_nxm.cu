@@ -30,7 +30,7 @@ __global__ void add(double *a, double *b, double*c, int dimX, int dimY) {
 int main(const int argc, const char **argv) {
   double *a, *b, *c;             // host copies of a, b, c
   double *dev_a, *dev_b, *dev_c; // device copies of a, b, c
-  int size; // bytes for a matrix of matrixDimX x matrixDimY integers
+  int size; // bytes for a, b, c
   int matrixDimX, matrixDimY; // matrix dimensions
   int gridSizeX, gridSizeY; // grid size
   int blockSize; // block size
@@ -71,9 +71,9 @@ int main(const int argc, const char **argv) {
   HANDLE_ERROR(cudaMalloc((void**)&dev_b, size));
   HANDLE_ERROR(cudaMalloc((void**)&dev_c, size));
 
-  // fill a, b with random integers
-  random_matrix_int(a, matrixDimX, matrixDimY);
-  random_matrix_int(b, matrixDimX, matrixDimY);
+  // fill a, b with random data
+  random_matrix_double(a, matrixDimX, matrixDimY);
+  random_matrix_double(b, matrixDimX, matrixDimY);
 
   // copy inputs to device
   HANDLE_ERROR(cudaMemcpy(dev_a, a, size, cudaMemcpyHostToDevice));
@@ -103,16 +103,10 @@ int main(const int argc, const char **argv) {
   // test result
   double *d;
   HANDLE_NULL(d = (double*)malloc(size));
-  matrix_add(a, b, d, matrixDimX, matrixDimY);
-  int i;
-  for (i = 0; i < matrixDimX * matrixDimY; i++) {
-    if (c[i] != d[i]) {
-      fprintf(stderr, "Error: (%d,%d) expected %f, got %f\n",
-      i % matrixDimX, i - (i % matrixDimX) / matrixDimX, d[i], c[i]);
-      break;
-    }
-  }
-  if (i == matrixDimX * matrixDimY) {
+  matrix_add_double(a, b, d, matrixDimX, matrixDimY);
+  if (!matrix_equals_double(c, d, matrixDimX, matrixDimY)) {
+    fprintf(stderr, "Error\n");
+  } else {
     printf("Correct\n");
   }
 

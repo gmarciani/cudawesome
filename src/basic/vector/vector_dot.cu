@@ -38,7 +38,8 @@ __global__ void dot(int *a, int *b, int *c, int dim) {
 int main(const int argc, const char **argv) {
   int *a, *b, *c;             // host copies of a, b, c
   int *dev_a, *dev_b, *dev_c; // device copies of a, b, c
-  int size; // bytes for an array of integers
+  int size;   // bytes for a, b, c
+  int size_c = sizeof(int); // bytes for c
   int vectorDim; // vector dimension
   int gridSize;  // grid size
   int blockSize; // block size
@@ -66,21 +67,21 @@ int main(const int argc, const char **argv) {
   // allocate host copies of a, b, c
   HANDLE_NULL(a = (int*)malloc(size));
   HANDLE_NULL(b = (int*)malloc(size));
-  HANDLE_NULL(c = (int*)malloc(sizeof(int)));
+  HANDLE_NULL(c = (int*)malloc(size_c));
 
   // allocate device copies of a, b, c
   HANDLE_ERROR(cudaMalloc((void**)&dev_a, size));
   HANDLE_ERROR(cudaMalloc((void**)&dev_b, size));
-  HANDLE_ERROR(cudaMalloc((void**)&dev_c, sizeof(int)));
+  HANDLE_ERROR(cudaMalloc((void**)&dev_c, size_c));
 
-  // fill a and b with vectorDim random integers
-  random_ints(a, vectorDim);
-  random_ints(b, vectorDim);
+  // fill a and b with random data
+  random_vector_int(a, vectorDim);
+  random_vector_int(b, vectorDim);
 
   // copy inputs to device
   HANDLE_ERROR(cudaMemcpy(dev_a, a, size, cudaMemcpyHostToDevice));
   HANDLE_ERROR(cudaMemcpy(dev_b, b, size, cudaMemcpyHostToDevice));
-  HANDLE_ERROR(cudaMemset(dev_c, 0, sizeof(int)));
+  HANDLE_ERROR(cudaMemset(dev_c, 0, size_c));
 
   // grid settings
   gridSize = vectorDim / blockSize;
@@ -95,13 +96,13 @@ int main(const int argc, const char **argv) {
   dot<<< gridSize, blockSize, sharedMemSize >>>(dev_a, dev_b, dev_c, vectorDim);
 
   // copy device result back to host copy of c
-  HANDLE_ERROR(cudaMemcpy(c, dev_c, sizeof(int), cudaMemcpyDeviceToHost));
+  HANDLE_ERROR(cudaMemcpy(c, dev_c, size_c, cudaMemcpyDeviceToHost));
 
   // test result
   int d;
-  vector_dot(a, b, &d, vectorDim);
+  vector_dot_int(a, b, &d, vectorDim);
   if (*c != d) {
-    fprintf(stderr, "Error: expected %d, got %d\n", d, *c);
+    fprintf(stderr, "Error: expected %f, got %f\n", d, *c);
   } else {
     printf("Correct\n");
   }

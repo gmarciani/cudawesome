@@ -9,17 +9,63 @@
 #ifndef __RANDOM_H__
 #define __RANDOM_H__
 
-static void random_ints(int *p, int n) {
-  for (int i = 0; i < n; i++) {
-    p[i] = rand();
+static void random_matrix_double(double *a, int rows, int cols) {
+  for (int i = 0; i < rows * cols; i++) {
+    a[i] = rand();
   }
 }
 
-static void random_matrix_int(double *p, int rows, int cols) {
-  for (int row = 0; row < rows; row++) {
-    for (int col = 0; col < cols; col++) {
-      p[row * cols + col] = rand();
-    }
+static void random_matrix_float(float *a, int rows, int cols) {
+  for (int i = 0; i < rows * cols; i++) {
+    a[i] = rand();
+  }
+}
+
+static void random_matrix_int(int *a, int rows, int cols) {
+  for (int i = 0; i < rows * cols; i++) {
+    a[i] = rand();
+  }
+}
+
+static void random_matrix_long(long *a, int rows, int cols) {
+  for (int i = 0; i < rows * cols; i++) {
+    a[i] = rand();
+  }
+}
+
+static void random_matrix_short(short *a, int rows, int cols) {
+  for (int i = 0; i < rows * cols; i++) {
+    a[i] = rand();
+  }
+}
+
+static void random_vector_double(double *a, int n) {
+  for (int i = 0; i < n; i++) {
+    a[i] = rand();
+  }
+}
+
+static void random_vector_float(float *a, int n) {
+  for (int i = 0; i < n; i++) {
+    a[i] = rand();
+  }
+}
+
+static void random_vector_int(int *a, int n) {
+  for (int i = 0; i < n; i++) {
+    a[i] = rand();
+  }
+}
+
+static void random_vector_long(long *a, int n) {
+  for (int i = 0; i < n; i++) {
+    a[i] = rand();
+  }
+}
+
+static void random_vector_short(short *a, int n) {
+  for (int i = 0; i < n; i++) {
+    a[i] = rand();
   }
 }
 
