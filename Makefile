@@ -82,18 +82,22 @@ matrix_mul_nxn: $(MATRIX_DIR)/matrix_mul_nxn.cu
 ##
 vector: all_vector_add all_vector_dot
 
-all_vector_add: vector_add_blocks_threads vector_add
+all_vector_add: all_vector_add_float all_vector_add_int
 
-all_vector_dot: all_vector_dot_int all_vector_dot_float
+all_vector_add_float: vector_add_float
 
-all_vector_dot_int: vector_dot_int_1 vector_dot_int_2 vector_dot_int_3
+all_vector_add_int: vector_add_int
+
+all_vector_dot: all_vector_dot_float all_vector_dot_int
 
 all_vector_dot_float: vector_dot_float_1 vector_dot_float_2 vector_dot_float_3
 
-vector_add_blocks_threads: $(VECTOR_DIR)/vector_add_blocks_threads.cu
+all_vector_dot_int: vector_dot_int_1 vector_dot_int_2 vector_dot_int_3
+
+vector_add_float: $(VECTOR_DIR)/vector_add_float.cu
 	$(CC) $(CFLAGS) $(MFLAGS) $(OFLAGS) -o $(BIN)/$@ $^
 
-vector_add: $(VECTOR_DIR)/vector_add.cu
+vector_add_int: $(VECTOR_DIR)/vector_add_int.cu
 	$(CC) $(CFLAGS) $(MFLAGS) $(OFLAGS) -o $(BIN)/$@ $^
 
 vector_dot_float_1: $(VECTOR_DIR)/vector_dot_float_1.cu

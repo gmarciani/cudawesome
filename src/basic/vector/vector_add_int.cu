@@ -1,12 +1,16 @@
 /*
- * @Name: vector_add.cu
+ * @Name: vector_add_int.cu
  * @Description: Addition of two integer vectors.
  * Custom vector dimension and block size.
  *
  * @Author: Giacomo Marciani <gmarciani@acm.org>
  * @Institution: University of Rome Tor Vergata
  *
- * @Usage: vector_add vectorDimension blockSize
+ * @Usage: vector_add_int vectorDimension blockSize
+ *
+ * Default values:
+ *  vectorDimension: 4096
+ *  blockSize: 32
  */
 
 #include <stdio.h>
@@ -14,6 +18,7 @@
 #include "../../common/error.h"
 #include "../../common/random.h"
 #include "../../common/vector.h"
+#include "../../common/mathutil.h"
 
 #ifdef DOUBLE
 #define REAL double
@@ -21,7 +26,7 @@
 #define REAL float
 #endif
 
-__global__ void add(const REAL *a, const REAL *b, REAL *c, const unsigned int dim) {
+__global__ void add(const int *a, const int *b, int *c, const unsigned int dim) {
   const unsigned int pos = blockIdx.x * blockDim.x + threadIdx.x;
 
   if (pos < dim) {
@@ -30,12 +35,13 @@ __global__ void add(const REAL *a, const REAL *b, REAL *c, const unsigned int di
 }
 
 int main(const int argc, const char **argv) {
-  REAL *a, *b, *c;             // host copies of a, b, c
-  REAL *dev_a, *dev_b, *dev_c; // device copies of a, b, c
+  int *a, *b, *c;             // host copies of a, b, c
+  int *dev_a, *dev_b, *dev_c; // device copies of a, b, c
   unsigned int size; // bytes for a, b, c
   unsigned int vectorDim; // vector dimension
   unsigned int gridSize;  // grid size
   unsigned int blockSize; // block size
+  cudaDeviceProp gpuInfo; // gpu properties
 
   if (argc < 3) {
     fprintf(stderr, "Usage: %s vectorDim blockSize\n", argv[0]);
@@ -50,23 +56,32 @@ int main(const int argc, const char **argv) {
     exit(1);
   }
 
-  if (blockSize < 1) {
-    fprintf(stderr, "Error: blockSize expected >= 1, got %d\n", blockSize);
+  if (!IS_POWER_OF_2(blockSize)) {
+    fprintf(stderr, "Error: blockSize expected as power of 2, got %d\n", blockSize);
     exit(1);
   }
 
-  #ifdef DOUBLE
-  printf("Double precision\n");
-  #else
-  printf("Single precision\n");
-  #endif
+  HANDLE_ERROR(cudaGetDeviceProperties(&gpuInfo, 0));
 
-  size = vectorDim * sizeof(REAL);
+  gridSize = vectorDim / blockSize;
+  if (gridSize * blockSize < vectorDim) {
+    gridSize += 1;
+  }
+
+  size = vectorDim * sizeof(int);
+
+  printf("----------------------------------\n");
+  printf("Vector Integer Addition\n");
+  printf("----------------------------------\n");
+  printf("Vector Dimension: %d\n", vectorDim);
+  printf("Grid Size: %d (max: %d)\n", gridSize, gpuInfo.maxGridSize[0]);
+  printf("Block Size: %d (max: %d)\n", blockSize, gpuInfo.maxThreadsDim[1]);
+  printf("---------------------------------\n");
 
   // allocate host copies of a, b, c
-  HANDLE_NULL(a = (REAL*)malloc(size));
-  HANDLE_NULL(b = (REAL*)malloc(size));
-  HANDLE_NULL(c = (REAL*)malloc(size));
+  HANDLE_NULL(a = (int*)malloc(size));
+  HANDLE_NULL(b = (int*)malloc(size));
+  HANDLE_NULL(c = (int*)malloc(size));
 
   // allocate device copies of a, b, c
   HANDLE_ERROR(cudaMalloc((void**)&dev_a, size));
@@ -74,38 +89,24 @@ int main(const int argc, const char **argv) {
   HANDLE_ERROR(cudaMalloc((void**)&dev_c, size));
 
   // fill a, b with random data
-  #ifdef DOUBLE
-  random_vector_double(a, vectorDim);
-  random_vector_double(b, vectorDim);
-  #else
-  random_vector_float(a, vectorDim);
-  random_vector_float(b, vectorDim);
-  #endif
+  random_vector_int(a, vectorDim);
+  random_vector_int(b, vectorDim);
 
   // copy inputs to device
   HANDLE_ERROR(cudaMemcpy(dev_a, a, size, cudaMemcpyHostToDevice));
   HANDLE_ERROR(cudaMemcpy(dev_b, b, size, cudaMemcpyHostToDevice));
 
   // launch add() kernel
-  gridSize = vectorDim / blockSize;
-  if (gridSize * blockSize < vectorDim) {
-    gridSize += 1;
-  }
   add<<< gridSize, blockSize >>>(dev_a, dev_b, dev_c, vectorDim);
 
   // copy device result back to host copy of c
   HANDLE_ERROR(cudaMemcpy(c, dev_c, size, cudaMemcpyDeviceToHost));
 
   // test result
-  REAL *d;
-  HANDLE_NULL(d = (REAL*)malloc(size));
-  #ifdef DOUBLE
-  vector_add_double(a, b, d, vectorDim);
-  const bool equal = vector_equals_double(c, d, vectorDim);
-  #else
-  vector_add_float(a, b, d, vectorDim);
-  const bool equal = vector_equals_float(c, d, vectorDim);
-  #endif
+  int *d;
+  HANDLE_NULL(d = (int*)malloc(size));
+  vector_add_int(a, b, d, vectorDim);
+  const bool equal = vector_equals_int(c, d, vectorDim);
   if (!equal) {
     fprintf(stderr, "Error\n");
   } else {
