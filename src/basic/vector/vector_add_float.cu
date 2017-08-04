@@ -36,6 +36,10 @@ __global__ void add(const REAL *a, const REAL *b, REAL *c, const unsigned int di
   c[pos] = a[pos] + b[pos];
 }
 
+__host__ gpuAdd(const REAL *a, const REAL *b, REAL *c, const dim3 grid, const dim3 block) {
+
+}
+
 int main(const int argc, const char **argv) {
   REAL *a, *b, *c;             // host copies of a, b, c
   REAL *dev_a, *dev_b, *dev_c; // device copies of a, b, c
