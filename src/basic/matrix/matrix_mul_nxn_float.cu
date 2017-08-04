@@ -28,6 +28,8 @@
 #define REAL float
 #endif
 
+#define EPSILON (float)1e-5
+
 __global__ void mul(const REAL *a, const REAL *b, REAL *c, const unsigned int dim) {
   const unsigned int iX = blockIdx.x * blockDim.x + threadIdx.x;
   const unsigned int iY = blockIdx.y * blockDim.y + threadIdx.y;
@@ -35,6 +37,7 @@ __global__ void mul(const REAL *a, const REAL *b, REAL *c, const unsigned int di
   if (iX >= dim || iY >= dim) return;
 
   const unsigned int pos = iY * dim + iX;
+
   REAL val = 0.0f;
   for (unsigned int k = 0; k < dim; k++) {
     val += a[iY * dim + k] * b[k * dim + iX];
@@ -135,10 +138,10 @@ int main(const int argc, const char **argv) {
   HANDLE_NULL(expected = (REAL*)malloc(size));
   #ifdef DOUBLE
   matrix_mul_double(a, b, expected, matrixDim, matrixDim, matrixDim);
-  const bool correct = matrix_equals_double(c, expected, matrixDim, matrixDim);
+  const bool correct = matrix_equals_err_double(c, expected, matrixDim, matrixDim, EPSILON);
   #else
   matrix_mul_float(a, b, expected, matrixDim, matrixDim, matrixDim);
-  const bool correct = matrix_equals_float(c, expected, matrixDim, matrixDim);
+  const bool correct = matrix_equals_err_float(c, expected, matrixDim, matrixDim, EPSILON);
   #endif
   if (!correct) {
     fprintf(stderr, "Error\n");

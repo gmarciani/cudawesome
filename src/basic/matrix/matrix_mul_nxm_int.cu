@@ -32,6 +32,7 @@ __global__ void mul(const int *a, const int *b, int *c, const unsigned int dimX1
   if (iX >= dimX2 || iY >= dimY1) return;
 
   const unsigned int pos = iY * dimX2 + iX;
+
   int val = 0;
   for (unsigned int k = 0; k < dimX1; k++) {
     val += a[iY * dimX1 + k] * b[k * dimX2 + iX];

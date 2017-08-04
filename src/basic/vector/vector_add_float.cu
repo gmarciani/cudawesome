@@ -26,6 +26,8 @@
 #define REAL float
 #endif
 
+#define EPSILON (float)1e-5
+
 __global__ void add(const REAL *a, const REAL *b, REAL *c, const unsigned int dim) {
   const unsigned int pos = blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -121,10 +123,10 @@ int main(const int argc, const char **argv) {
   HANDLE_NULL(d = (REAL*)malloc(size));
   #ifdef DOUBLE
   vector_add_double(a, b, d, vectorDim);
-  const bool equal = vector_equals_double(c, d, vectorDim);
+  const bool equal = vector_equals_err_double(c, d, vectorDim, EPSILON);
   #else
   vector_add_float(a, b, d, vectorDim);
-  const bool equal = vector_equals_float(c, d, vectorDim);
+  const bool equal = vector_equals_err_float(c, d, vectorDim, EPSILON);
   #endif
   if (!equal) {
     fprintf(stderr, "Error\n");

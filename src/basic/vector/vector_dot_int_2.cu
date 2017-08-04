@@ -22,6 +22,8 @@
 #include "../../common/vector.h"
 #include "../../common/mathutil.h"
 
+#define EPSILON (float)1e-5
+
 __global__ void dot(const int *a, const int *b, int *c, const unsigned int vectorDim) {
   extern __shared__ int temp[];
 
@@ -134,9 +136,9 @@ int main(const int argc, const char **argv) {
   // test result
   int expected;
   vector_dot_int(a, b, &expected, vectorDim);
-  if (result != expected) {
+  if (fabs(expected - result) > EPSILON * expected) {
     fprintf(stderr, "Error: expected %d, got %d (error:%f %%)\n",
-      expected, result, (((float)result - (float)expected) / (float)expected) * 100.0);
+      expected, result, (fabs(expected - result) / expected) * 100.0);
   } else {
     printf("Correct\n");
   }

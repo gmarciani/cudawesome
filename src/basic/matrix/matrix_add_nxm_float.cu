@@ -28,6 +28,8 @@
 #define REAL float
 #endif
 
+#define EPSILON (float)1e-5
+
 __global__ void add(const REAL *a, const REAL *b, REAL *c, const unsigned int dimX, const unsigned int dimY) {
   const unsigned int iX = blockIdx.x * blockDim.x + threadIdx.x;
   const unsigned int iY = blockIdx.y * blockDim.y + threadIdx.y;
@@ -139,10 +141,10 @@ int main(const int argc, const char **argv) {
   HANDLE_NULL(expected = (REAL*)malloc(size));
   #ifdef DOUBLE
   matrix_add_double(a, b, expected, matrixDimX, matrixDimY);
-  const bool equal = matrix_equals_double(c, expected, matrixDimX, matrixDimY);
+  const bool equal = matrix_equals_err_double(c, expected, matrixDimX, matrixDimY, EPSILON);
   #else
   matrix_add_float(a, b, expected, matrixDimX, matrixDimY);
-  const bool equal = matrix_equals_float(c, expected, matrixDimX, matrixDimY);
+  const bool equal = matrix_equals_err_float(c, expected, matrixDimX, matrixDimY, EPSILON);
   #endif
   if (!equal) {
     fprintf(stderr, "Error\n");

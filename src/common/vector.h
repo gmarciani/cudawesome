@@ -119,6 +119,51 @@ static bool vector_equals_short(const short *actual, const short *expected, cons
   return true;
 }
 
+static bool vector_equals_err_double(const double *actual, const double *expected, const unsigned int dim, const float err) {
+  for (unsigned int i = 0; i < dim; i++) {
+    if (fabs(expected[i] - actual[i]) > err * expected[i]) {
+      return false;
+    }
+  }
+  return true;
+}
+
+static bool vector_equals_err_float(const float *actual, const float *expected, const unsigned int dim, const float err) {
+  for (unsigned int i = 0; i < dim; i++) {
+    if (fabs(expected[i] - actual[i]) > err * expected[i]) {
+      return false;
+    }
+  }
+  return true;
+}
+
+static bool vector_equals_err_int(const int *actual, const int *expected, const unsigned int dim, const float err) {
+  for (unsigned int i = 0; i < dim; i++) {
+    if (abs(expected[i] - actual[i]) > err * expected[i]) {
+      return false;
+    }
+  }
+  return true;
+}
+
+static bool vector_equals_err_long(const long *actual, const long *expected, const unsigned int dim, const float err) {
+  for (unsigned int i = 0; i < dim; i++) {
+    if (abs(expected[i] - actual[i]) > err * expected[i]) {
+      return false;
+    }
+  }
+  return true;
+}
+
+static bool vector_equals_err_short(const short *actual, const short *expected, const unsigned int dim, const float err) {
+  for (unsigned int i = 0; i < dim; i++) {
+    if (abs(expected[i] - actual[i]) > err * expected[i]) {
+      return false;
+    }
+  }
+  return true;
+}
+
 static void vector_print_double(const char *name, const double *a, const unsigned int dim) {
   printf("%s=[\n", name);
   for (unsigned int i = 0; i < dim; i++) {

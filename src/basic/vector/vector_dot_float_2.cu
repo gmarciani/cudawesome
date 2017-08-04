@@ -28,6 +28,8 @@
 #define REAL float
 #endif
 
+#define EPSILON (float)1e-5
+
 __global__ void dot(const REAL *a, const REAL *b, REAL *c, const unsigned int vectorDim) {
   extern __shared__ REAL temp[];
 
@@ -154,9 +156,9 @@ int main(const int argc, const char **argv) {
   #else
   vector_dot_float(a, b, &expected, vectorDim);
   #endif
-  if (result != expected) {
+  if (fabs(expected - result) > EPSILON * expected) {
     fprintf(stderr, "Error: expected %f, got %f (error:%f %%)\n",
-      expected, result, ((result - expected) / expected) * 100.0);
+      expected, result, (fabs(expected - result) / expected) * 100.0);
   } else {
     printf("Correct\n");
   }

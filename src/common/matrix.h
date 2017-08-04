@@ -84,6 +84,51 @@ static bool matrix_equals_short(const short *actual, const short *expected, cons
   return true;
 }
 
+static bool matrix_equals_err_double(const double *actual, const double *expected, const unsigned int dimX, const unsigned int dimY, const float epsilon) {
+  for (unsigned int i = 0; i < dimX * dimY; i++) {
+    if (fabs(expected[i] - actual[i]) > epsilon * expected[i]) {
+      return false;
+    }
+  }
+  return true;
+}
+
+static bool matrix_equals_err_float(const float *actual, const float *expected, const unsigned int dimX, const unsigned int dimY, const float epsilon) {
+  for (unsigned int i = 0; i < dimX * dimY; i++) {
+    if (fabs(expected[i] - actual[i]) > epsilon * expected[i]) {
+      return false;
+    }
+  }
+  return true;
+}
+
+static bool matrix_equals_err_int(const int *actual, const int *expected, const unsigned int dimX, const unsigned int dimY, const float epsilon) {
+  for (unsigned int i = 0; i < dimX * dimY; i++) {
+    if (abs(expected[i] - actual[i]) > epsilon * expected[i]) {
+      return false;
+    }
+  }
+  return true;
+}
+
+static bool matrix_equals_err_long(const long *actual, const long *expected, const unsigned int dimX, const unsigned int dimY, const float epsilon) {
+  for (unsigned int i = 0; i < dimX * dimY; i++) {
+    if (abs(expected[i] - actual[i]) > epsilon * expected[i]) {
+      return false;
+    }
+  }
+  return true;
+}
+
+static bool matrix_equals_err_short(const short *actual, const short *expected, const unsigned int dimX, const unsigned int dimY, const float epsilon) {
+  for (unsigned int i = 0; i < dimX * dimY; i++) {
+    if (abs(expected[i] - actual[i]) > epsilon * expected[i]) {
+      return false;
+    }
+  }
+  return true;
+}
+
 static void matrix_mul_double(const double *a, const double *b, double *c, const unsigned int dimX1Y2, const unsigned int dimY1, const unsigned int dimX2) {
   for (unsigned int y = 0; y < dimY1; y++) {
     for (unsigned int x = 0; x < dimX2; x++) {
