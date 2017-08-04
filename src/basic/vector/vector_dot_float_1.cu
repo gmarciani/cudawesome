@@ -34,21 +34,21 @@ __global__ void dot(const REAL *a, const REAL *b, REAL *c, const unsigned int ve
   const unsigned int tid = threadIdx.x;
   const unsigned int pos = blockIdx.x * blockDim.x + threadIdx.x;
 
-  if (pos < vectorDim) {
-    temp[tid] = a[pos] * b[pos];
+  if (pos >= vectorDim) return;
 
+  temp[tid] = a[pos] * b[pos];
+
+  __syncthreads();
+
+  for (unsigned int stride = 1; stride < blockDim.x; stride *= 2) {
+    if (tid % (2 * stride) == 0) {
+      temp[tid] += temp[tid + stride];
+    }
     __syncthreads();
+  }
 
-    for (unsigned int stride = 1; stride < blockDim.x; stride *= 2) {
-      if (tid % (2 * stride) == 0) {
-        temp[tid] += temp[tid + stride];
-      }
-      __syncthreads();
-    }
-
-    if (0 == tid) {
-      c[blockIdx.x] = temp[0];
-    }
+  if (0 == tid) {
+    c[blockIdx.x] = temp[0];
   }
 }
 

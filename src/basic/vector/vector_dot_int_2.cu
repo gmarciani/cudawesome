@@ -28,21 +28,21 @@ __global__ void dot(const int *a, const int *b, int *c, const unsigned int vecto
   const unsigned int tid = threadIdx.x;
   const unsigned int pos = blockIdx.x * blockDim.x + threadIdx.x;
 
-  if (pos < vectorDim) {
-    temp[tid] = a[pos] * b[pos];
+  if (pos >= vectorDim) return;
 
+  temp[tid] = a[pos] * b[pos];
+
+  __syncthreads();
+
+  for (unsigned int stride = blockDim.x / 2; stride > 0; stride >>= 1) {
+    if (tid < stride) {
+      temp[tid] += temp[tid + stride];
+    }
     __syncthreads();
+  }
 
-    for (unsigned int stride = blockDim.x / 2; stride > 0; stride >>= 1) {
-      if (tid < stride) {
-        temp[tid] += temp[tid + stride];
-      }
-      __syncthreads();
-    }
-
-    if (0 == tid) {
-      c[blockIdx.x] = temp[0];
-    }
+  if (0 == tid) {
+    c[blockIdx.x] = temp[0];
   }
 }
 

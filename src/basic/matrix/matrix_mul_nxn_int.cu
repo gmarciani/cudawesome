@@ -26,15 +26,15 @@ __global__ void mul(const int *a, const int *b, int *c, const unsigned int dim) 
   const unsigned int iX = blockIdx.x * blockDim.x + threadIdx.x;
   const unsigned int iY = blockIdx.y * blockDim.y + threadIdx.y;
 
-  if (iX < dim && iY < dim) {
-    const unsigned int pos = iY * dim + iX;
-    int val = 0;
-    for (unsigned int k = 0; k < dim; k++) {
-      val += a[iY * dim + k] * b[k * dim + iX];
-    }
+  if (iX >= dim || iY >= dim) return;
 
-    c[pos] = val;
+  const unsigned int pos = iY * dim + iX;
+  int val = 0;
+  for (unsigned int k = 0; k < dim; k++) {
+    val += a[iY * dim + k] * b[k * dim + iX];
   }
+
+  c[pos] = val;
 }
 
 int main(const int argc, const char **argv) {

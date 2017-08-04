@@ -25,10 +25,10 @@ __global__ void add(const int *a, const int *b, int *c, const unsigned int dim) 
   const unsigned int iX = blockIdx.x * blockDim.x + threadIdx.x;
   const unsigned int iY = blockIdx.y * blockDim.y + threadIdx.y;
 
-  if (iX < dim && iY < dim) {
-    const unsigned int pos = iY * dim + iX;
-    c[pos] = a[pos] + b[pos];
-  }
+  if (iX >= dim || iY >= dim) return;
+
+  const unsigned int pos = iY * dim + iX;
+  c[pos] = a[pos] + b[pos];
 }
 
 int main(const int argc, const char **argv) {

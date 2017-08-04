@@ -29,9 +29,9 @@
 __global__ void add(const int *a, const int *b, int *c, const unsigned int dim) {
   const unsigned int pos = blockIdx.x * blockDim.x + threadIdx.x;
 
-  if (pos < dim) {
-    c[pos] = a[pos] + b[pos];
-  }
+  if (pos >= dim) return;
+
+  c[pos] = a[pos] + b[pos];
 }
 
 int main(const int argc, const char **argv) {

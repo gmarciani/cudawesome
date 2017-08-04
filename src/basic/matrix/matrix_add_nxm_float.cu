@@ -32,10 +32,10 @@ __global__ void add(const REAL *a, const REAL *b, REAL *c, const unsigned int di
   const unsigned int iX = blockIdx.x * blockDim.x + threadIdx.x;
   const unsigned int iY = blockIdx.y * blockDim.y + threadIdx.y;
 
-  if (iX < dimX && iY < dimY) {
-    const unsigned int pos = iY * dimX + iX;
-    c[pos] = a[pos] + b[pos];
-  }
+  if (iX >= dimX || iY >= dimY) return;
+
+  const unsigned int pos = iY * dimX + iX;
+  c[pos] = a[pos] + b[pos];
 }
 
 int main(const int argc, const char **argv) {
