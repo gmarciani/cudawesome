@@ -42,12 +42,11 @@ int main(const int argc, const char **argv) {
   int *dev_a, *dev_b, *dev_c; // device copies of a, b, c
   unsigned int size; // bytes for a, b, c
   unsigned int matrixDim; // matrix dimension
-  dim3 gridDim;  // grid dimension
-  dim3 blockDim; // block dimension
   unsigned int gridSize; // grid size
   unsigned int blockSize; // block size
   cudaDeviceProp gpuInfo; // gpu properties
 
+  // check arguments
   if (argc < 3) {
     fprintf(stderr, "Usage: %s matrixDim blockSize\n", argv[0]);
     exit(1);
@@ -71,10 +70,8 @@ int main(const int argc, const char **argv) {
   if (gridSize * blockSize < matrixDim) {
      gridSize += 1;
   }
-  blockDim.x = blockSize;
-  blockDim.y = blockSize;
-  gridDim.x = gridSize;
-  gridDim.y = gridSize;
+  dim3 gridDim(gridSize, gridSize);
+  dim3 blockDim(blockSize, blockSize);
 
   size = matrixDim * matrixDim * sizeof(int);
 

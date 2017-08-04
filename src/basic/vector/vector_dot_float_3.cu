@@ -83,10 +83,13 @@ int main(const int argc, const char **argv) {
     exit(1);
   }
 
+  // grid settings
   gridSize = vectorDim / blockSize;
   if (gridSize * blockSize < vectorDim) {
     gridSize += 1;
   }
+  dim3 gridDim(gridSize);
+  dim3 blockDim(blockSize);
 
   size_a_b = vectorDim * sizeof(REAL);
   size_c = gridSize * sizeof(REAL);
@@ -135,7 +138,7 @@ int main(const int argc, const char **argv) {
   const unsigned int sharedMemSize = (unsigned int) gridSize * sizeof(REAL);
 
   // launch dot() kernel
-  dot<<< gridSize, blockSize, sharedMemSize >>>(dev_a, dev_b, dev_c, vectorDim);
+  dot<<< gridDim, blockDim, sharedMemSize >>>(dev_a, dev_b, dev_c, vectorDim);
 
   // copy device result back to host copy of c
   HANDLE_ERROR(cudaMemcpy(c, dev_c, size_c, cudaMemcpyDeviceToHost));

@@ -41,6 +41,7 @@ int main(const int argc, const char **argv) {
   unsigned int blockSize; // block size
   cudaDeviceProp gpuInfo; // gpu properties
 
+  // check arguments
   if (argc < 4) {
     fprintf(stderr, "Usage: %s matrixDimX matrixDimY blockSize\n", argv[0]);
     exit(1);

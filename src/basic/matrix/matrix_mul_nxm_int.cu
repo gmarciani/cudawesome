@@ -49,6 +49,7 @@ int main(const int argc, const char **argv) {
   unsigned int blockSize; // block size
   cudaDeviceProp gpuInfo; // gpu properties
 
+  // check arguments
   if (argc < 6) {
     fprintf(stderr, "Usage: %s matrixDimX1 matrixDimY1 matrixDimX2 matrixDimY2 blockSize\n", argv[0]);
     exit(1);
@@ -97,7 +98,7 @@ int main(const int argc, const char **argv) {
      gridSizeY += 1;
   }
   dim3 gridDim(gridSizeX, gridSizeY);
-  dim3 blockDim(blockSize);
+  dim3 blockDim(blockSize, blockSize);
 
   size_a = matrixDimX1 * matrixDimY1 * sizeof(int);
   size_b = matrixDimX2 * matrixDimY2 * sizeof(int);

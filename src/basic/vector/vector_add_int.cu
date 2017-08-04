@@ -43,6 +43,7 @@ int main(const int argc, const char **argv) {
   unsigned int blockSize; // block size
   cudaDeviceProp gpuInfo; // gpu properties
 
+  // check arguments
   if (argc < 3) {
     fprintf(stderr, "Usage: %s vectorDim blockSize\n", argv[0]);
     exit(1);
@@ -61,10 +62,13 @@ int main(const int argc, const char **argv) {
     exit(1);
   }
 
+  // grid settings
   gridSize = vectorDim / blockSize;
   if (gridSize * blockSize < vectorDim) {
     gridSize += 1;
   }
+  dim3 gridDim(gridSize);
+  dim3 blockDim(blockSize);
 
   size = vectorDim * sizeof(int);
 
@@ -97,7 +101,7 @@ int main(const int argc, const char **argv) {
   HANDLE_ERROR(cudaMemcpy(dev_b, b, size, cudaMemcpyHostToDevice));
 
   // launch add() kernel
-  add<<< gridSize, blockSize >>>(dev_a, dev_b, dev_c, vectorDim);
+  add<<< gridDim, blockDim >>>(dev_a, dev_b, dev_c, vectorDim);
 
   // copy device result back to host copy of c
   HANDLE_ERROR(cudaMemcpy(c, dev_c, size, cudaMemcpyDeviceToHost));
