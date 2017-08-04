@@ -18,20 +18,9 @@ __global__ void add(const int *a, const int *b, int *c) {
   *c = *a + *b;
 }
 
-int main(const int argc, char **argv) {
-  int a, b, c;                // host copies of a, b, c
+__host__ void gpuAdd(const int a, const int b, int *c) {
   int *dev_a, *dev_b, *dev_c; // device copies of a, b, c
   const unsigned int size = sizeof(int); // bytes for and integer
-
-  // check arguments
-  if (argc < 3) {
-    fprintf(stderr, "Usage: %s a b\n", argv[0]);
-    exit(1);
-  }
-
-  // set values
-  a = atoi(argv[1]);
-  b = atoi(argv[2]);
 
   // allocate device copies of a, b, c
   HANDLE_ERROR(cudaMalloc((void**)&dev_a, size));
@@ -46,7 +35,28 @@ int main(const int argc, char **argv) {
   add<<< 1, 1 >>>(dev_a, dev_b, dev_c);
 
   // copy device result back to host copy of c
-  HANDLE_ERROR(cudaMemcpy(&c, dev_c, size, cudaMemcpyDeviceToHost));
+  HANDLE_ERROR(cudaMemcpy(c, dev_c, size, cudaMemcpyDeviceToHost));
+
+  // free device
+  HANDLE_ERROR(cudaFree(dev_a));
+  HANDLE_ERROR(cudaFree(dev_b));
+  HANDLE_ERROR(cudaFree(dev_c));
+}
+
+int main(const int argc, char **argv) {
+  int a, b, c;                // host copies of a, b, c
+
+  // check arguments
+  if (argc < 3) {
+    fprintf(stderr, "Usage: %s a b\n", argv[0]);
+    exit(1);
+  }
+
+  // set values
+  a = atoi(argv[1]);
+  b = atoi(argv[2]);
+
+  gpuAdd(a, b, &c);
 
   // test result
   const int expected = a + b;
@@ -55,11 +65,6 @@ int main(const int argc, char **argv) {
   } else {
     printf("Correct: %d\n", c);
   }
-
-  // free device
-  HANDLE_ERROR(cudaFree(dev_a));
-  HANDLE_ERROR(cudaFree(dev_b));
-  HANDLE_ERROR(cudaFree(dev_c));
 
   return 0;
 }
