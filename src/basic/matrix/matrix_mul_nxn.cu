@@ -17,28 +17,28 @@
 #include "../../common/random.h"
 #include "../../common/matrix.h"
 
-__global__ void mul(double *a, double *b, double *c, int dim) {
-  int iX = blockIdx.x * blockDim.x + threadIdx.x;
-  int iY = blockIdx.y * blockDim.y + threadIdx.y;
+__global__ void mul(const double *a, const double *b, double *c, const unsigned int dim) {
+  const unsigned int iX = blockIdx.x * blockDim.x + threadIdx.x;
+  const unsigned int iY = blockIdx.y * blockDim.y + threadIdx.y;
 
   if (iX < dim && iY < dim) {
-    int idx = iY * dim + iX;
+    const unsigned int pos = iY * dim + iX;
     double val = 0;
-    for (int k = 0; k < dim; k++) {
+    for (unsigned int k = 0; k < dim; k++) {
       val += a[iY * dim + k] * b[k * dim + iX];
     }
 
-    c[idx] = val;
+    c[pos] = val;
   }
 }
 
 int main(const int argc, const char **argv) {
   double *a, *b, *c;         // host copies of a, b, c
   double *dev_a, *dev_b, *dev_c; // device copies of a, b, c
-  int size; // bytes for a, b, c
-  int matrixDim; // matrix dimension
-  int gridSize; // grid size
-  int blockSize; // block size
+  unsigned int size; // bytes for a, b, c
+  unsigned int matrixDim; // matrix dimension
+  unsigned int gridSize; // grid size
+  unsigned int blockSize; // block size
 
   if (argc < 3) {
     fprintf(stderr, "Usage: %s matrixDim blockSize\n", argv[0]);

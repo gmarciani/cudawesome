@@ -13,62 +13,134 @@
 #include "../../common/random.h"
 #include "../../common/vector.h"
 
-#define VECTOR_DIM 512
-#define BLOCK_SIZE 16
+#ifdef DOUBLE
+#define REAL double
+#else
+#define REAL float
+#endif
 
-__global__ void dot(int *a, int *b, int *c) {
-  __shared__ int temp[VECTOR_DIM];
+#define VECTOR_DIM 4096
+#define BLOCK_SIZE 32
+#define GRID_SIZE (VECTOR_DIM / BLOCK_SIZE)
 
-  int idx = threadIdx.x + blockIdx.x * blockDim.x;
-  temp[idx] = a[idx] * b[idx];
+/*
+__device__ void device_vector_print_float(const unsigned int bid, const unsigned int tid, const char *name, const float *a, const unsigned int dim) {
+  printf("[%d,%d] > %s=[\n", bid, tid, name);
+  for (unsigned int i = 0; i < dim; i++) {
+    printf("(block: %d | i:%d): %f \n", bid, i, a[i]);
+  }
+  printf("]\n");
+}
+*/
+
+__global__ void dot(const REAL *a, const REAL *b, REAL *c) {
+  __shared__ REAL temp[BLOCK_SIZE];
+
+  const unsigned int tid = threadIdx.x;
+  const unsigned int pos = blockIdx.x * blockDim.x + threadIdx.x;
+
+  //if (0 == tid) device_vector_print_float(blockIdx.x, tid, "temp-initial", temp, BLOCK_SIZE);
+
+  //__syncthreads();
+
+  temp[tid] = a[pos] * b[pos];
+
+  //__syncthreads();
+
+  //if (0 == tid) device_vector_print_float(blockIdx.x, tid, "temp-product", temp, BLOCK_SIZE);
 
   __syncthreads();
 
-  if (0 == threadIdx.x) {
-    int sum = 0;
-    for (int i = VECTOR_DIM - 1; i >= 0; i--) {
-      sum += temp[i];
+  for (unsigned int stride = 1; stride < blockDim.x; stride *= 2) {
+    if (tid % (2 * stride) == 0) {
+      temp[tid] += temp[tid + stride];
     }
-    atomicAdd(c, sum);
+    __syncthreads();
+    //if (0 == tid) device_vector_print_float(blockIdx.x, tid, "temp_stride", temp, BLOCK_SIZE);
+  }
+
+  if (0 == tid) {
+    c[blockIdx.x] = temp[0];
   }
 }
 
 int main(void) {
-  int *a, *b, *c;             // host copies of a, b, c
-  int *dev_a, *dev_b, *dev_c; // device copies of a, b, c
-  int size = VECTOR_DIM * sizeof(int); // bytes for a, b
-  int size_c = sizeof(int); // bytes for c
+  REAL *a, *b, *c, result;     // host copies of a, b, c, result
+  REAL *dev_a, *dev_b, *dev_c; // device copies of a, b, c
+  const unsigned int size_a_b = VECTOR_DIM * sizeof(REAL); // bytes for a, b
+  const unsigned int size_c = GRID_SIZE * sizeof(REAL); // bytes for c
+
+  printf("----------------------------------------\n");
+  printf("Vector Dot Product (reduction: baseline)\n");
+  printf("----------------------------------------\n");
+  #ifdef DOUBLE
+  printf("Precision: double\n");
+  #else
+  printf("Precision: single\n");
+  #endif
+  printf("Vector Dimension: %d\n", VECTOR_DIM);
+  printf("Grid Size: %d\n", GRID_SIZE);
+  printf("Block Size: %d\n", BLOCK_SIZE);
+  printf("----------------------------------------\n");
 
   // allocate host copies of a, b, c
-  HANDLE_NULL(a = (int*)malloc(size));
-  HANDLE_NULL(b = (int*)malloc(size));
-  HANDLE_NULL(c = (int*)malloc(size_c));
+  HANDLE_NULL(a = (REAL*)malloc(size_a_b));
+  HANDLE_NULL(b = (REAL*)malloc(size_a_b));
+  HANDLE_NULL(c = (REAL*)malloc(size_c));
 
   // allocate device copies of a, b, c
-  HANDLE_ERROR(cudaMalloc((void**)&dev_a, size));
-  HANDLE_ERROR(cudaMalloc((void**)&dev_b, size));
+  HANDLE_ERROR(cudaMalloc((void**)&dev_a, size_a_b));
+  HANDLE_ERROR(cudaMalloc((void**)&dev_b, size_a_b));
   HANDLE_ERROR(cudaMalloc((void**)&dev_c, size_c));
 
-  // fill a and b with random data
-  random_vector_int(a, VECTOR_DIM);
-  random_vector_int(b, VECTOR_DIM);
+  // fill a, b with random data
+  #ifdef DOUBLE
+  random_vector_double(a, VECTOR_DIM);
+  random_vector_double(b, VECTOR_DIM);
+  #else
+  random_vector_float(a, VECTOR_DIM);
+  random_vector_float(b, VECTOR_DIM);
+  #endif
+  /*
+  for (unsigned int i = 0; i < VECTOR_DIM; i++) {
+    a[i] = i;
+    b[i] = i;
+  }
+  */
+
+  //vector_print_float("A", a, VECTOR_DIM);
+  //vector_print_float("B", b, VECTOR_DIM);
 
   // copy inputs to device
-  HANDLE_ERROR(cudaMemcpy(dev_a, a, size, cudaMemcpyHostToDevice));
-  HANDLE_ERROR(cudaMemcpy(dev_b, b, size, cudaMemcpyHostToDevice));
-  HANDLE_ERROR(cudaMemset(dev_c, 0, size_c));
+  HANDLE_ERROR(cudaMemcpy(dev_a, a, size_a_b, cudaMemcpyHostToDevice));
+  HANDLE_ERROR(cudaMemcpy(dev_b, b, size_a_b, cudaMemcpyHostToDevice));
+  HANDLE_ERROR(cudaMemset(dev_c, 0.0f, size_c));
 
   // launch dot() kernel
-  dot<<< VECTOR_DIM / BLOCK_SIZE, BLOCK_SIZE >>>(dev_a, dev_b, dev_c);
+  dot<<< GRID_SIZE, BLOCK_SIZE >>>(dev_a, dev_b, dev_c);
+
+  //cudaDeviceSynchronize();
 
   // copy device result back to host copy of c
   HANDLE_ERROR(cudaMemcpy(c, dev_c, size_c, cudaMemcpyDeviceToHost));
 
+  //vector_print_float("C", c, GRID_SIZE);
+
+  // reduce blocks result
+  result = 0.0f;
+  for (unsigned int block = 0; block < GRID_SIZE; block++) {
+    result += c[block];
+  }
+
   // test result
-  int d;
-  vector_dot_int(a, b, &d, VECTOR_DIM);
-  if (*c != d) {
-    fprintf(stderr, "Error: expected %f, got %f\n", d, *c);
+  REAL expected;
+  #if DOUBLE
+  vector_dot_double(a, b, &expected, VECTOR_DIM);
+  #else
+  vector_dot_float(a, b, &expected, VECTOR_DIM);
+  #endif
+  if (result != expected) {
+    fprintf(stderr, "Error: expected %f, got %f\n", expected, result);
   } else {
     printf("Correct\n");
   }

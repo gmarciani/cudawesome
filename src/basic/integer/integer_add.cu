@@ -12,7 +12,7 @@
 #include <stdio.h>
 #include "../../common/error.h"
 
-__global__ void add(int a, int b, int *c) {
+__global__ void add(const int a, const int b, int *c) {
   *c = a + b;
 }
 
@@ -40,7 +40,7 @@ int main(const int argc, char **argv) {
   HANDLE_ERROR(cudaMemcpy(&c, dev_c, sizeof(int), cudaMemcpyDeviceToHost));
 
   // test result
-  int expected = a + b;
+  const int expected = a + b;
   if (c != expected) {
     fprintf(stderr, "Error: expected %d, got %d\n", expected, c);
   } else {

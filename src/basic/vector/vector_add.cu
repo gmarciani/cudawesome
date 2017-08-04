@@ -15,21 +15,27 @@
 #include "../../common/random.h"
 #include "../../common/vector.h"
 
-__global__ void add(double *a, double *b, double *c, int dim) {
-  int idx = blockIdx.x * blockDim.x + threadIdx.x;
+#ifdef DOUBLE
+#define REAL double
+#else
+#define REAL float
+#endif
 
-  if (idx < dim) {
-    c[idx] = a[idx] + b[idx];
+__global__ void add(const REAL *a, const REAL *b, REAL *c, const unsigned int dim) {
+  const unsigned int pos = blockIdx.x * blockDim.x + threadIdx.x;
+
+  if (pos < dim) {
+    c[pos] = a[pos] + b[pos];
   }
 }
 
 int main(const int argc, const char **argv) {
-  double *a, *b, *c;             // host copies of a, b, c
-  double *dev_a, *dev_b, *dev_c; // device copies of a, b, c
-  int size; // bytes for a, b, c
-  int vectorDim; // vector dimension
-  int gridSize;  // grid size
-  int blockSize; // block size
+  REAL *a, *b, *c;             // host copies of a, b, c
+  REAL *dev_a, *dev_b, *dev_c; // device copies of a, b, c
+  unsigned int size; // bytes for a, b, c
+  unsigned int vectorDim; // vector dimension
+  unsigned int gridSize;  // grid size
+  unsigned int blockSize; // block size
 
   if (argc < 3) {
     fprintf(stderr, "Usage: %s vectorDim blockSize\n", argv[0]);
@@ -49,12 +55,18 @@ int main(const int argc, const char **argv) {
     exit(1);
   }
 
-  size = vectorDim * sizeof(double);
+  #ifdef DOUBLE
+  printf("Double precision\n");
+  #else
+  printf("Single precision\n");
+  #endif
+
+  size = vectorDim * sizeof(REAL);
 
   // allocate host copies of a, b, c
-  HANDLE_NULL(a = (double*)malloc(size));
-  HANDLE_NULL(b = (double*)malloc(size));
-  HANDLE_NULL(c = (double*)malloc(size));
+  HANDLE_NULL(a = (REAL*)malloc(size));
+  HANDLE_NULL(b = (REAL*)malloc(size));
+  HANDLE_NULL(c = (REAL*)malloc(size));
 
   // allocate device copies of a, b, c
   HANDLE_ERROR(cudaMalloc((void**)&dev_a, size));
@@ -62,8 +74,13 @@ int main(const int argc, const char **argv) {
   HANDLE_ERROR(cudaMalloc((void**)&dev_c, size));
 
   // fill a, b with random data
+  #ifdef DOUBLE
   random_vector_double(a, vectorDim);
   random_vector_double(b, vectorDim);
+  #else
+  random_vector_float(a, vectorDim);
+  random_vector_float(b, vectorDim);
+  #endif
 
   // copy inputs to device
   HANDLE_ERROR(cudaMemcpy(dev_a, a, size, cudaMemcpyHostToDevice));
@@ -80,10 +97,16 @@ int main(const int argc, const char **argv) {
   HANDLE_ERROR(cudaMemcpy(c, dev_c, size, cudaMemcpyDeviceToHost));
 
   // test result
-  double *d;
-  HANDLE_NULL(d = (double*)malloc(size));
+  REAL *d;
+  HANDLE_NULL(d = (REAL*)malloc(size));
+  #ifdef DOUBLE
   vector_add_double(a, b, d, vectorDim);
-  if (!vector_equals_double(c, d, vectorDim)) {
+  const bool equal = vector_equals_double(c, d, vectorDim);
+  #else
+  vector_add_float(a, b, d, vectorDim);
+  const bool equal = vector_equals_float(c, d, vectorDim);
+  #endif
+  if (!equal) {
     fprintf(stderr, "Error\n");
   } else {
     printf("Correct\n");

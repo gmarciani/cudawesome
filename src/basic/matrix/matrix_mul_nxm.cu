@@ -17,28 +17,28 @@
 #include "../../common/random.h"
 #include "../../common/matrix.h"
 
-__global__ void mul(double *a, double *b, double *c, int dimX1, int dimY1, int dimX2) {
-  int iX = blockIdx.x * blockDim.x + threadIdx.x;
-  int iY = blockIdx.y * blockDim.y + threadIdx.y;
+__global__ void mul(const double *a, const double *b, double *c, const unsigned int dimX1, const unsigned int dimY1, const unsigned int dimX2) {
+  const unsigned int iX = blockIdx.x * blockDim.x + threadIdx.x;
+  const unsigned int iY = blockIdx.y * blockDim.y + threadIdx.y;
 
   if (iX < dimX2 && iY < dimY1) {
-    int idx = iY * dimX2 + iX;
+    const unsigned int pos = iY * dimX2 + iX;
     double val = 0;
-    for (int k = 0; k < dimX1; k++) {
+    for (unsigned int k = 0; k < dimX1; k++) {
       val += a[iY * dimX1 + k] * b[k * dimX2 + iX];
     }
 
-    c[idx] = val;
+    c[pos] = val;
   }
 }
 
 int main(const int argc, const char **argv) {
   double *a, *b, *c;         // host copies of a, b, c
   double *dev_a, *dev_b, *dev_c; // device copies of a, b, c
-  int size_a, size_b, size_c; // bytes for a, b, c
-  int matrixDimX1, matrixDimY1, matrixDimX2, matrixDimY2; // matrices dimensions
-  int gridSizeX, gridSizeY; // grid size
-  int blockSize; // block size
+  unsigned int size_a, size_b, size_c; // bytes for a, b, c
+  unsigned int matrixDimX1, matrixDimY1, matrixDimX2, matrixDimY2; // matrices dimensions
+  unsigned int gridSizeX, gridSizeY; // grid size
+  unsigned int blockSize; // block size
 
   if (argc < 6) {
     fprintf(stderr, "Usage: %s matrixDimX1 matrixDimY1 matrixDimX2 matrixDimY2 blockSize\n", argv[0]);
@@ -100,12 +100,12 @@ int main(const int argc, const char **argv) {
 
   // grid settings
   dim3 gridDim, blockDim;
-  int maxDimX = max(matrixDimX1, matrixDimX2);
+  const unsigned int maxDimX = max(matrixDimX1, matrixDimX2);
   gridSizeX = maxDimX / blockSize;
   if (gridSizeX * blockSize < maxDimX) {
      gridSizeX += 1;
   }
-  int maxDimY = max(matrixDimY1, matrixDimY2);
+  const unsigned int maxDimY = max(matrixDimY1, matrixDimY2);
   gridSizeY = maxDimY / blockSize;
   if (gridSizeY * blockSize < maxDimY) {
      gridSizeY += 1;

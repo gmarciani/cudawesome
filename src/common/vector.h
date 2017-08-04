@@ -9,124 +9,154 @@
 #ifndef __VECTOR_H__
 #define __VECTOR_H__
 
-static void vector_add_double(double *a, double *b, double *c, int dim) {
-  for (int i = 0; i < dim; i++) {
+static void vector_add_double(const double *a, const double *b, double *c, const unsigned int dim) {
+  for (unsigned int i = 0; i < dim; i++) {
     c[i] = a[i] + b[i];
   }
 }
 
-static void vector_add_float(float *a, float *b, float *c, int dim) {
-  for (int i = 0; i < dim; i++) {
+static void vector_add_float(const float *a, const float *b, float *c, const unsigned int dim) {
+  for (unsigned int i = 0; i < dim; i++) {
     c[i] = a[i] + b[i];
   }
 }
 
-static void vector_add_int(int *a, int *b, int *c, int dim) {
-  for (int i = 0; i < dim; i++) {
+static void vector_add_int(const int *a, const int *b, int *c, const unsigned int dim) {
+  for (unsigned int i = 0; i < dim; i++) {
     c[i] = a[i] + b[i];
   }
 }
 
-static void vector_add_long(long *a, long *b, long *c, int dim) {
-  for (int i = 0; i < dim; i++) {
+static void vector_add_long(const long *a, const long *b, long *c, const unsigned int dim) {
+  for (unsigned int i = 0; i < dim; i++) {
     c[i] = a[i] + b[i];
   }
 }
 
-static void vector_add_short(short *a, short *b, short *c, int dim) {
-  for (int i = 0; i < dim; i++) {
+static void vector_add_short(const short *a, const short *b, short *c, const unsigned int dim) {
+  for (unsigned int i = 0; i < dim; i++) {
     c[i] = a[i] + b[i];
   }
 }
 
-static void vector_dot_double(double *a, double *b, double *c, int dim) {
-  *c = 0;
-  for (int i = 0; i < dim; i++) {
+static void vector_dot_double(const double *a, const double *b, double *c, const unsigned int dim) {
+  *c = 0.0;
+  for (unsigned int i = 0; i < dim; i++) {
     *c += a[i] * b[i];
   }
 }
 
-static void vector_dot_float(float *a, float *b, float *c, int dim) {
-  *c = 0;
-  for (int i = 0; i < dim; i++) {
+static void vector_dot_float(const float *a, const float *b, float *c, const unsigned int dim) {
+  *c = 0.0f;
+  for (unsigned int i = 0; i < dim; i++) {
     *c += a[i] * b[i];
   }
 }
 
-static void vector_dot_int(int *a, int *b, int *c, int dim) {
+static void vector_dot_int(const int *a, const int *b, int *c, const unsigned int dim) {
   *c = 0;
-  for (int i = 0; i < dim; i++) {
+  for (unsigned int i = 0; i < dim; i++) {
     *c += a[i] * b[i];
   }
 }
 
-static void vector_dot_long(long *a, long *b, long *c, int dim) {
+static void vector_dot_long(const long *a, const long *b, long *c, const unsigned int dim) {
   *c = 0;
-  for (int i = 0; i < dim; i++) {
+  for (unsigned int i = 0; i < dim; i++) {
     *c += a[i] * b[i];
   }
 }
 
-static void vector_dot_short(short *a, short *b, short *c, int dim) {
+static void vector_dot_short(const short *a, const short *b, short *c, const unsigned int dim) {
   *c = 0;
-  for (int i = 0; i < dim; i++) {
+  for (unsigned int i = 0; i < dim; i++) {
     *c += a[i] * b[i];
   }
 }
 
-static bool vector_equals_double(double *actual, double *expected, int dim) {
-  int i;
-  for (i = 0; i < dim; i++) {
+static bool vector_equals_double(const double *actual, const double *expected, const unsigned int dim) {
+  for (unsigned int i = 0; i < dim; i++) {
     if (actual[i] != expected[i]) {
-      //fprintf(stderr, "Error: [%d] expected %f, got %f\n", i, expected[i], actual[i]);
       return false;
     }
   }
   return true;
 }
 
-static bool vector_equals_float(float *actual, float *expected, int dim) {
-  int i;
-  for (i = 0; i < dim; i++) {
+static bool vector_equals_float(const float *actual, const float *expected, const unsigned int dim) {
+  for (unsigned int i = 0; i < dim; i++) {
     if (actual[i] != expected[i]) {
-      //fprintf(stderr, "Error: [%d] expected %f, got %f\n", i, expected[i], actual[i]);
       return false;
     }
   }
   return true;
 }
 
-static bool vector_equals_int(int *actual, int *expected, int dim) {
-  int i;
-  for (i = 0; i < dim; i++) {
+static bool vector_equals_int(const int *actual, const int *expected, const unsigned int dim) {
+  for (unsigned int i = 0; i < dim; i++) {
     if (actual[i] != expected[i]) {
-      //fprintf(stderr, "Error: [%d] expected %d, got %d\n", i, expected[i], actual[i]);
       return false;
     }
   }
   return true;
 }
 
-static bool vector_equals_long(long *actual, long *expected, int dim) {
-  int i;
-  for (i = 0; i < dim; i++) {
+static bool vector_equals_long(const long *actual, const long *expected, const unsigned int dim) {
+  for (unsigned int i = 0; i < dim; i++) {
     if (actual[i] != expected[i]) {
-      //fprintf(stderr, "Error: [%d] expected %d, got %d\n", i, expected[i], actual[i]);
       return false;
     }
   }
   return true;
 }
 
-static bool vector_equals_short(short *actual, short *expected, int dim) {
-  int i;
-  for (i = 0; i < dim; i++) {
+static bool vector_equals_short(const short *actual, const short *expected, const unsigned int dim) {
+  for (unsigned int i = 0; i < dim; i++) {
     if (actual[i] != expected[i]) {
-      //fprintf(stderr, "Error: [%d] expected %d, got %d\n", i, expected[i], actual[i]);
       return false;
     }
   }
   return true;
+}
+
+static void vector_print_double(const char *name, const double *a, const unsigned int dim) {
+  printf("%s=[\n", name);
+  for (unsigned int i = 0; i < dim; i++) {
+    printf("%lf ", a[i]);
+  }
+  printf("]\n");
+}
+
+static void vector_print_float(const char *name, const float *a, const unsigned int dim) {
+  printf("%s=[\n", name);
+  for (unsigned int i = 0; i < dim; i++) {
+    printf("%f ", a[i]);
+  }
+  printf("]\n");
+}
+
+static void vector_print_int(const char *name, const int *a, const unsigned int dim) {
+  printf("%s=[\n", name);
+  for (unsigned int i = 0; i < dim; i++) {
+    printf("%d ", a[i]);
+  }
+  printf("]\n");
+}
+
+static void vector_print_long(const char *name, const long *a, const unsigned int dim) {
+  printf("%s=[\n", name);
+  for (unsigned int i = 0; i < dim; i++) {
+    printf("%ld ", a[i]);
+  }
+  printf("]\n");
+}
+
+static void vector_print_short(const char *name, const short *a, const unsigned int dim) {
+  printf("%s=[\n", name);
+  for (unsigned int i = 0; i < dim; i++) {
+    printf("%d ", a[i]);
+  }
+  printf("]\n");
 }
 
 #endif  // __VECTOR_H__

@@ -9,62 +9,62 @@
 #ifndef __RANDOM_H__
 #define __RANDOM_H__
 
-static void random_matrix_double(double *a, int rows, int cols) {
-  for (int i = 0; i < rows * cols; i++) {
+static void random_matrix_double(double *a, const unsigned int rows, const unsigned int cols) {
+  for (unsigned int i = 0; i < rows * cols; i++) {
     a[i] = (double) rand();
   }
 }
 
-static void random_matrix_float(float *a, int rows, int cols) {
-  for (int i = 0; i < rows * cols; i++) {
+static void random_matrix_float(float *a, const unsigned int rows, const unsigned int cols) {
+  for (unsigned int i = 0; i < rows * cols; i++) {
     a[i] = (float) rand();
   }
 }
 
-static void random_matrix_int(int *a, int rows, int cols) {
-  for (int i = 0; i < rows * cols; i++) {
+static void random_matrix_int(int *a, const unsigned int rows, const unsigned int cols) {
+  for (unsigned int i = 0; i < rows * cols; i++) {
     a[i] = rand();
   }
 }
 
-static void random_matrix_long(long *a, int rows, int cols) {
-  for (int i = 0; i < rows * cols; i++) {
+static void random_matrix_long(long *a, const unsigned int rows, const unsigned int cols) {
+  for (unsigned int i = 0; i < rows * cols; i++) {
     a[i] = (long) rand();
   }
 }
 
-static void random_matrix_short(short *a, int rows, int cols) {
-  for (int i = 0; i < rows * cols; i++) {
+static void random_matrix_short(short *a, const unsigned int rows, const unsigned int cols) {
+  for (unsigned int i = 0; i < rows * cols; i++) {
     a[i] = (short )rand();
   }
 }
 
-static void random_vector_double(double *a, int n) {
-  for (int i = 0; i < n; i++) {
+static void random_vector_double(double *a, const unsigned int n) {
+  for (unsigned int i = 0; i < n; i++) {
     a[i] = (double) rand();
   }
 }
 
-static void random_vector_float(float *a, int n) {
-  for (int i = 0; i < n; i++) {
+static void random_vector_float(float *a, const unsigned int n) {
+  for (unsigned int i = 0; i < n; i++) {
     a[i] = (float) rand();
   }
 }
 
-static void random_vector_int(int *a, int n) {
-  for (int i = 0; i < n; i++) {
+static void random_vector_int(int *a, const unsigned int n) {
+  for (unsigned int i = 0; i < n; i++) {
     a[i] = rand();
   }
 }
 
-static void random_vector_long(long *a, int n) {
-  for (int i = 0; i < n; i++) {
+static void random_vector_long(long *a, const unsigned int n) {
+  for (unsigned int i = 0; i < n; i++) {
     a[i] = (long) rand();
   }
 }
 
-static void random_vector_short(short *a, int n) {
-  for (int i = 0; i < n; i++) {
+static void random_vector_short(short *a, const unsigned int n) {
+  for (unsigned int i = 0; i < n; i++) {
     a[i] = (short) rand();
   }
 }

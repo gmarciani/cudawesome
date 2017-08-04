@@ -9,7 +9,7 @@
 #ifndef __ERROR_H__
 #define __ERROR_H__
 
-static void handleError(cudaError_t err, const char *file, int line) {
+static void handleError(cudaError_t err, const char *file, const int line) {
   if (err != cudaSuccess) {
     fprintf(stderr, "%s in %s at line %d\n",
     cudaGetErrorString(err), file, line);

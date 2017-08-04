@@ -1,6 +1,14 @@
 CC=nvcc
 
-CFLAGS= -m64
+CFLAGS= --machine 64 --gpu-architecture=sm_35 --compiler-options -Wall,-Wno-unused-function
+
+MFLAGS= --define-macro FLOAT
+
+OFLAGS= --optimize 3
+
+DFLAGS= --debug --device-debug
+
+PFLAGS= --profile
 
 SRC=./src
 
@@ -27,7 +35,7 @@ dir:
 info: gpu_info
 
 gpu_info: $(INFO_DIR)/gpu_info.cu
-	$(CC) $(CFLAGS) -o $(BIN)/$@ $^
+	$(CC) $(CFLAGS) $(MFLAGS) $(OFLAGS) -o $(BIN)/$@ $^
 
 ##
 # basic
@@ -35,7 +43,7 @@ gpu_info: $(INFO_DIR)/gpu_info.cu
 basic: hello_world integer vector matrix
 
 hello_world: $(BASIC_DIR)/hello_world.cu
-	$(CC) $(CFLAGS) -o $(BIN)/$@ $^
+	$(CC) $(CFLAGS) $(MFLAGS) $(OFLAGS) -o $(BIN)/$@ $^
 
 ##
 # basic/integer
@@ -43,10 +51,10 @@ hello_world: $(BASIC_DIR)/hello_world.cu
 integer: integer_add_ptr integer_add
 
 integer_add_ptr: $(INTEGER_DIR)/integer_add_ptr.cu
-	$(CC) $(CFLAGS) -o $(BIN)/$@ $^
+	$(CC) $(CFLAGS) $(MFLAGS) $(OFLAGS) -o $(BIN)/$@ $^
 
 integer_add: $(INTEGER_DIR)/integer_add.cu
-	$(CC) $(CFLAGS) -o $(BIN)/$@ $^
+	$(CC) $(CFLAGS) $(MFLAGS) $(OFLAGS) -o $(BIN)/$@ $^
 
 ##
 # basic/matrix
@@ -58,45 +66,53 @@ all_matrix_add: matrix_add_nxm matrix_add_nxn
 all_matrix_mul: matrix_mul_nxm matrix_mul_nxn
 
 matrix_add_nxm: $(MATRIX_DIR)/matrix_add_nxm.cu
-	$(CC) $(CFLAGS) -o $(BIN)/$@ $^
+	$(CC) $(CFLAGS) $(MFLAGS) $(OFLAGS) -o $(BIN)/$@ $^
 
 matrix_add_nxn: $(MATRIX_DIR)/matrix_add_nxn.cu
-	$(CC) $(CFLAGS) -o $(BIN)/$@ $^
+	$(CC) $(CFLAGS) $(MFLAGS) $(OFLAGS) -o $(BIN)/$@ $^
 
 matrix_mul_nxm: $(MATRIX_DIR)/matrix_mul_nxm.cu
-	$(CC) $(CFLAGS) -o $(BIN)/$@ $^
+	$(CC) $(CFLAGS) $(MFLAGS) $(OFLAGS) -o $(BIN)/$@ $^
 
 matrix_mul_nxn: $(MATRIX_DIR)/matrix_mul_nxn.cu
-	$(CC) $(CFLAGS) -o $(BIN)/$@ $^
+	$(CC) $(CFLAGS) $(MFLAGS) $(OFLAGS) -o $(BIN)/$@ $^
+
 ##
 # basic/vector
 ##
 vector: all_vector_add all_vector_dot
 
-all_vector_add: vector_add_blocks_threads vector_add_blocks vector_add_threads vector_add
+all_vector_add: vector_add_blocks_threads vector_add
 
-all_vector_dot: vector_dot_blocks_threads vector_dot_threads vector_dot
+all_vector_dot: all_vector_dot_int all_vector_dot_float
+
+all_vector_dot_int: vector_dot_int_1 vector_dot_int_2 vector_dot_int_3
+
+all_vector_dot_float: vector_dot_float_1 vector_dot_float_2 vector_dot_float_3
 
 vector_add_blocks_threads: $(VECTOR_DIR)/vector_add_blocks_threads.cu
-	$(CC) $(CFLAGS) -o $(BIN)/$@ $^
-
-vector_add_blocks: $(VECTOR_DIR)/vector_add_blocks.cu
-	$(CC) $(CFLAGS) -o $(BIN)/$@ $^
-
-vector_add_threads: $(VECTOR_DIR)/vector_add_threads.cu
-	$(CC) $(CFLAGS) -o $(BIN)/$@ $^
+	$(CC) $(CFLAGS) $(MFLAGS) $(OFLAGS) -o $(BIN)/$@ $^
 
 vector_add: $(VECTOR_DIR)/vector_add.cu
-	$(CC) $(CFLAGS) -o $(BIN)/$@ $^
+	$(CC) $(CFLAGS) $(MFLAGS) $(OFLAGS) -o $(BIN)/$@ $^
 
-vector_dot_blocks_threads: $(VECTOR_DIR)/vector_dot_blocks_threads.cu
-	$(CC) $(CFLAGS) -o $(BIN)/$@ $^
+vector_dot_float_1: $(VECTOR_DIR)/vector_dot_float_1.cu
+	$(CC) $(CFLAGS) $(MFLAGS) $(OFLAGS) -o $(BIN)/$@ $^
 
-vector_dot_threads: $(VECTOR_DIR)/vector_dot_threads.cu
-	$(CC) $(CFLAGS) -o $(BIN)/$@ $^
+vector_dot_float_2: $(VECTOR_DIR)/vector_dot_float_2.cu
+	$(CC) $(CFLAGS) $(MFLAGS) $(OFLAGS) -o $(BIN)/$@ $^
 
-vector_dot: $(VECTOR_DIR)/vector_dot.cu
-	$(CC) $(CFLAGS) -o $(BIN)/$@ $^
+vector_dot_float_3: $(VECTOR_DIR)/vector_dot_float_3.cu
+	$(CC) $(CFLAGS) $(MFLAGS) $(OFLAGS) -o $(BIN)/$@ $^
+
+vector_dot_int_1: $(VECTOR_DIR)/vector_dot_int_1.cu
+	$(CC) $(CFLAGS) $(MFLAGS) $(OFLAGS) -o $(BIN)/$@ $^
+
+vector_dot_int_2: $(VECTOR_DIR)/vector_dot_int_2.cu
+	$(CC) $(CFLAGS) $(MFLAGS) $(OFLAGS) -o $(BIN)/$@ $^
+
+vector_dot_int_3: $(VECTOR_DIR)/vector_dot_int_3.cu
+	$(CC) $(CFLAGS) $(MFLAGS) $(OFLAGS) -o $(BIN)/$@ $^
 
 ##
 # clean

@@ -1,12 +1,20 @@
 /*
- * @Name: vector_dot.cu
+ * @Name: vector_dot_int_3.cu
  * @Description: Integer vectors dot-product.
- * Custom vector dimension and block size.
+ * Multiple blocks, multiple threads per block.
  *
  * @Author: Giacomo Marciani <gmarciani@acm.org>
  * @Institution: University of Rome Tor Vergata
  *
- * @Usage: vector_dot vectorDimension blockSize
+ * @Usage: vector_dot_int_3 vectorDimension blockSize
+ *
+ * Default values:
+ *  vectorDimension: 4096
+ *  blockSize: 32
+ *
+ * WARNING: works only if (vectorDim % blockSize) == 0
+ *
+ * @See: http://developer.download.nvidia.com/compute/cuda/1.1-Beta/x86_website/projects/reduction/doc/reduction.pdf
  */
 
 #include <stdio.h>
@@ -16,25 +24,19 @@
 #include "../../common/vector.h"
 #include "../../common/mathutil.h"
 
-#ifdef DOUBLE
-#define REAL double
-#else
-#define REAL float
-#endif
-
-__global__ void dot(const REAL *a, const REAL *b, REAL *c, const unsigned int dim) {
-  extern __shared__ REAL temp[];
+__global__ void dot(const int *a, const int *b, int *c, const unsigned int vectorDim) {
+  extern __shared__ int temp[];
 
   const unsigned int tid = threadIdx.x;
-  const unsigned int pos = blockIdx.x * blockDim.x + threadIdx.x;
+  const unsigned int pos = blockIdx.x * (blockDim.x * 2) + threadIdx.x;
 
-  if (pos < dim) {
-    temp[tid] = a[pos] * b[pos];
+  if (pos + blockDim.x < vectorDim) {
+    temp[tid] = (a[pos] * b[pos]) + (a[pos + blockDim.x] * b[pos + blockDim.x]);
 
     __syncthreads();
 
-    for (unsigned int stride = 1; stride < blockDim.x; stride *= 2) {
-      if (tid % (2 * stride) == 0) {
+    for (unsigned int stride = blockDim.x / 2; stride > 0; stride >>= 1) {
+      if (tid < stride) {
         temp[tid] += temp[tid + stride];
       }
       __syncthreads();
@@ -47,10 +49,10 @@ __global__ void dot(const REAL *a, const REAL *b, REAL *c, const unsigned int di
 }
 
 int main(const int argc, const char **argv) {
-  REAL *a, *b, *c, result;     // host copies of a, b, c, result
-  REAL *dev_a, *dev_b, *dev_c; // device copies of a, b, c
+  int *a, *b, *c, result;     // host copies of a, b, c, result
+  int *dev_a, *dev_b, *dev_c; // device copies of a, b, c
   unsigned int size_a_b; // bytes for a, b
-  unsigned int size_c;   // bytes for c
+  unsigned int size_c; // bytes for c
   unsigned int vectorDim; // vector dimension
   unsigned int gridSize;  // grid size
   unsigned int blockSize; // block size
@@ -74,19 +76,27 @@ int main(const int argc, const char **argv) {
     exit(1);
   }
 
-  #ifdef DOUBLE
-  printf("Double precision\n");
-  #else
-  printf("Single precision\n");
-  #endif
+  gridSize = vectorDim / blockSize;
+  if (gridSize * blockSize < vectorDim) {
+    gridSize += 1;
+  }
 
-  size_a_b = vectorDim * sizeof(REAL);
-  size_c = blockSize * sizeof(REAL);
+  size_a_b = vectorDim * sizeof(int);
+  size_c = gridSize * sizeof(int);
+
+  printf("----------------------------------------------\n");
+  printf("Vector Integer Dot Product\n");
+  printf("Reduction: sequential addressing (add-on-load)\n");
+  printf("----------------------------------------------\n");
+  printf("Vector Dimension: %d\n", vectorDim);
+  printf("Grid Size: %d\n", gridSize);
+  printf("Block Size: %d\n", blockSize);
+  printf("----------------------------------------------\n");
 
   // allocate host copies of a, b, c
-  HANDLE_NULL(a = (REAL*)malloc(size_a_b));
-  HANDLE_NULL(b = (REAL*)malloc(size_a_b));
-  HANDLE_NULL(c = (REAL*)malloc(size_c));
+  HANDLE_NULL(a = (int*)malloc(size_a_b));
+  HANDLE_NULL(b = (int*)malloc(size_a_b));
+  HANDLE_NULL(c = (int*)malloc(size_c));
 
   // allocate device copies of a, b, c
   HANDLE_ERROR(cudaMalloc((void**)&dev_a, size_a_b));
@@ -94,27 +104,16 @@ int main(const int argc, const char **argv) {
   HANDLE_ERROR(cudaMalloc((void**)&dev_c, size_c));
 
   // fill a, b with random data
-  #ifdef DOUBLE
-  random_vector_double(a, vectorDim);
-  random_vector_double(b, vectorDim);
-  #else
-  random_vector_float(a, vectorDim);
-  random_vector_float(b, vectorDim);
-  #endif
+  random_vector_int(a, vectorDim);
+  random_vector_int(b, vectorDim);
 
   // copy inputs to device
   HANDLE_ERROR(cudaMemcpy(dev_a, a, size_a_b, cudaMemcpyHostToDevice));
   HANDLE_ERROR(cudaMemcpy(dev_b, b, size_a_b, cudaMemcpyHostToDevice));
-  HANDLE_ERROR(cudaMemset(dev_c, 0.0f, size_c));
-
-  // grid settings
-  gridSize = vectorDim / blockSize;
-  if (gridSize * blockSize < vectorDim) {
-    gridSize += 1;
-  }
+  HANDLE_ERROR(cudaMemset(dev_c, 0, size_c));
 
   // shared memory settings
-  const unsigned int sharedMemSize = (unsigned int) blockSize * sizeof(REAL);
+  const unsigned int sharedMemSize = (unsigned int) gridSize * sizeof(int);
 
   // launch dot() kernel
   dot<<< gridSize, blockSize, sharedMemSize >>>(dev_a, dev_b, dev_c, vectorDim);
@@ -123,20 +122,16 @@ int main(const int argc, const char **argv) {
   HANDLE_ERROR(cudaMemcpy(c, dev_c, size_c, cudaMemcpyDeviceToHost));
 
   // reduce blocks result
-  result = 0.0f;
-  for (unsigned int block = 0; block < blockSize; block++) {
+  result = 0;
+  for (unsigned int block = 0; block < gridSize; block++) {
     result += c[block];
   }
 
   // test result
-  REAL expected;
-  #if DOUBLE
-  vector_dot_double(a, b, &expected, vectorDim);
-  #else
-  vector_dot_float(a, b, &expected, vectorDim);
-  #endif
+  int expected;
+  vector_dot_int(a, b, &expected, vectorDim);
   if (result != expected) {
-    fprintf(stderr, "Error\n");
+    fprintf(stderr, "Error: %.f %%\n", (abs(result - expected) / expected) * 100.0);
   } else {
     printf("Correct\n");
   }

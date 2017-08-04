@@ -37,6 +37,7 @@ int main(void) {
   cudaEvent_t start, stop; // events for elapsed time
   float elapsed; // elapsed time
 
+  // check arguments
   if(argc < 2) {
     fprintf(stderr, "Usage: %s MatrixDimension\n", argv[0]);
     exit(1);

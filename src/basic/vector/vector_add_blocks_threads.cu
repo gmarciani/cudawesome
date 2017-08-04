@@ -13,23 +13,35 @@
 #include "../../common/random.h"
 #include "../../common/vector.h"
 
+#ifdef DOUBLE
+#define REAL double
+#else
+#define REAL float
+#endif
+
 #define VECTOR_DIM 512
 #define BLOCK_SIZE 16
 
-__global__ void add(double *a, double *b, double *c) {
-  int idx = blockIdx.x * blockDim.x + threadIdx.x;
-  c[idx] = a[idx] + b[idx];
+__global__ void add(const REAL *a, const REAL *b, REAL *c) {
+  const unsigned int pos = blockIdx.x * blockDim.x + threadIdx.x;
+  c[pos] = a[pos] + b[pos];
 }
 
 int main(void) {
-  double *a, *b, *c;             // host copies of a, b, c
-  double *dev_a, *dev_b, *dev_c; // device copies of a, b, c
-  int size = VECTOR_DIM * sizeof(double); // bytes for a, b, c
+  REAL *a, *b, *c;             // host copies of a, b, c
+  REAL *dev_a, *dev_b, *dev_c; // device copies of a, b, c
+  const unsigned int size = VECTOR_DIM * sizeof(REAL); // bytes for a, b, c
+
+  #ifdef DOUBLE
+  printf("Double precision\n");
+  #else
+  printf("Single precision\n");
+  #endif
 
   // allocate host copies of a, b, c
-  HANDLE_NULL(a = (double*)malloc(size));
-  HANDLE_NULL(b = (double*)malloc(size));
-  HANDLE_NULL(c = (double*)malloc(size));
+  HANDLE_NULL(a = (REAL*)malloc(size));
+  HANDLE_NULL(b = (REAL*)malloc(size));
+  HANDLE_NULL(c = (REAL*)malloc(size));
 
   // allocate device copies of a, b, c
   HANDLE_ERROR(cudaMalloc((void**)&dev_a, size));
@@ -37,8 +49,13 @@ int main(void) {
   HANDLE_ERROR(cudaMalloc((void**)&dev_c, size));
 
   // fill a, b with random data
+  #ifdef DOUBLE
   random_vector_double(a, VECTOR_DIM);
   random_vector_double(b, VECTOR_DIM);
+  #else
+  random_vector_float(a, VECTOR_DIM);
+  random_vector_float(b, VECTOR_DIM);
+  #endif
 
   // copy inputs to device
   HANDLE_ERROR(cudaMemcpy(dev_a, a, size, cudaMemcpyHostToDevice));
@@ -51,10 +68,16 @@ int main(void) {
   HANDLE_ERROR(cudaMemcpy(c, dev_c, size, cudaMemcpyDeviceToHost));
 
   // test result
-  double *d;
-  HANDLE_NULL(d = (double*)malloc(size));
+  REAL *d;
+  HANDLE_NULL(d = (REAL*)malloc(size));
+  #ifdef DOUBLE
   vector_add_double(a, b, d, VECTOR_DIM);
-  if (!vector_equals_double(c, d, VECTOR_DIM)) {
+  const bool equal = vector_equals_double(c, d, VECTOR_DIM);
+  #else
+  vector_add_float(a, b, d, VECTOR_DIM);
+  const bool equal = vector_equals_float(c, d, VECTOR_DIM);
+  #endif
+  if (!equal) {
     fprintf(stderr, "Error\n");
   } else {
     printf("Correct\n");
