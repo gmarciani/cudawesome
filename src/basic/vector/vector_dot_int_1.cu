@@ -22,9 +22,7 @@
 #include "../../common/vector.h"
 #include "../../common/mathutil.h"
 
-#define EPSILON (float)1e-5
-
-__global__ void dot(const int *a, const int *b, int *c, const unsigned int vectorDim) {
+__global__ void vectorDot(const int *a, const int *b, int *c, const unsigned int vectorDim) {
   extern __shared__ int temp[];
 
   const unsigned int tid = threadIdx.x;
@@ -48,12 +46,53 @@ __global__ void dot(const int *a, const int *b, int *c, const unsigned int vecto
   }
 }
 
+__host__ void gpuVectorDot(const int *a, const int *b, int *result, const unsigned int vectorDim, const dim3 gridDim, const dim3 blockDim) {
+  int *dev_a, *dev_b, *dev_partial; // device copies of a, b, partial
+  int *partial; // host copy for partial result
+  const unsigned int size_a_b = vectorDim * sizeof(int); // bytes for a, b
+  const unsigned int size_partial = gridDim.x * sizeof(int); // bytes for partial
+
+  // allocate host copies of partial
+  HANDLE_NULL(partial = (int*)malloc(size_partial));
+
+  // allocate device copies of a, b, c
+  HANDLE_ERROR(cudaMalloc((void**)&dev_a, size_a_b));
+  HANDLE_ERROR(cudaMalloc((void**)&dev_b, size_a_b));
+  HANDLE_ERROR(cudaMalloc((void**)&dev_partial, size_partial));
+
+  // copy inputs to device
+  HANDLE_ERROR(cudaMemcpy(dev_a, a, size_a_b, cudaMemcpyHostToDevice));
+  HANDLE_ERROR(cudaMemcpy(dev_b, b, size_a_b, cudaMemcpyHostToDevice));
+  HANDLE_ERROR(cudaMemset(dev_partial, 0, size_partial));
+
+  // shared memory settings
+  const unsigned int sharedMemSize = (unsigned int) blockDim.x * sizeof(int);
+
+  // launch kernel vectorDot
+  vectorDot<<< gridDim, blockDim, sharedMemSize >>>(dev_a, dev_b, dev_partial, vectorDim);
+
+  // copy device result back to host copy of c
+  HANDLE_ERROR(cudaMemcpy(partial, dev_partial, size_partial, cudaMemcpyDeviceToHost));
+
+  // reduce blocks result
+  *result = 0;
+  for (unsigned int block = 0; block < gridDim.x; block++) {
+    (*result) += partial[block];
+  }
+
+  // free host
+  free(partial);
+
+  // free device
+  HANDLE_ERROR(cudaFree(dev_a));
+  HANDLE_ERROR(cudaFree(dev_b));
+  HANDLE_ERROR(cudaFree(dev_partial));
+}
+
 int main(const int argc, const char **argv) {
-  int *a, *b, *c, result;     // host copies of a, b, c, result
-  int *dev_a, *dev_b, *dev_c; // device copies of a, b, c
-  unsigned int size_a_b; // bytes for a, b
-  unsigned int size_c; // bytes for c
+  int *a, *b, result; // host copies of a, b, result
   unsigned int vectorDim; // vector dimension
+  unsigned int size_a_b; // bytes for a, b
   unsigned int gridSize;  // grid size
   unsigned int blockSize; // block size
   cudaDeviceProp gpuInfo; // gpu properties
@@ -86,7 +125,6 @@ int main(const int argc, const char **argv) {
   dim3 blockDim(blockSize);
 
   size_a_b = vectorDim * sizeof(int);
-  size_c = gridSize * sizeof(int);
 
   HANDLE_ERROR(cudaGetDeviceProperties(&gpuInfo, 0));
 
@@ -95,50 +133,31 @@ int main(const int argc, const char **argv) {
   printf("Reduction: interleaving addressing\n");
   printf("----------------------------------\n");
   printf("Vector Dimension: %d\n", vectorDim);
-  printf("Grid Size: %d (max: %d)\n", gridSize, gpuInfo.maxGridSize[0]);
-  printf("Block Size: %d (max: %d)\n", blockSize, gpuInfo.maxThreadsDim[1]);
-  printf("----------------------------------\n");
+  printf("Grid Size: (%d %d %d) (max: (%d %d %d))\n",
+    gridDim.x, gridDim.y, gridDim.z,
+    gpuInfo.maxGridSize[0], gpuInfo.maxGridSize[1], gpuInfo.maxGridSize[2]);
+  printf("Block Size: (%d %d %d) (max: (%d %d %d))\n",
+    blockDim.x, blockDim.y, blockDim.z,
+    gpuInfo.maxThreadsDim[0], gpuInfo.maxThreadsDim[1], gpuInfo.maxThreadsDim[2]);
+  printf("---------------------------------\n");
 
   // allocate host copies of a, b, c
   HANDLE_NULL(a = (int*)malloc(size_a_b));
   HANDLE_NULL(b = (int*)malloc(size_a_b));
-  HANDLE_NULL(c = (int*)malloc(size_c));
-
-  // allocate device copies of a, b, c
-  HANDLE_ERROR(cudaMalloc((void**)&dev_a, size_a_b));
-  HANDLE_ERROR(cudaMalloc((void**)&dev_b, size_a_b));
-  HANDLE_ERROR(cudaMalloc((void**)&dev_c, size_c));
 
   // fill a, b with random data
   random_vector_int(a, vectorDim);
   random_vector_int(b, vectorDim);
 
-  // copy inputs to device
-  HANDLE_ERROR(cudaMemcpy(dev_a, a, size_a_b, cudaMemcpyHostToDevice));
-  HANDLE_ERROR(cudaMemcpy(dev_b, b, size_a_b, cudaMemcpyHostToDevice));
-  HANDLE_ERROR(cudaMemset(dev_c, 0, size_c));
-
-  // shared memory settings
-  const unsigned int sharedMemSize = (unsigned int) gridSize * sizeof(int);
-
-  // launch dot() kernel
-  dot<<< gridDim, blockDim, sharedMemSize >>>(dev_a, dev_b, dev_c, vectorDim);
-
-  // copy device result back to host copy of c
-  HANDLE_ERROR(cudaMemcpy(c, dev_c, size_c, cudaMemcpyDeviceToHost));
-
-  // reduce blocks result
-  result = 0;
-  for (unsigned int block = 0; block < gridSize; block++) {
-    result += c[block];
-  }
+  // launch kernel vectorDot()
+  gpuVectorDot(a, b, &result, vectorDim, gridDim, blockDim);
 
   // test result
   int expected;
   vector_dot_int(a, b, &expected, vectorDim);
-  if (fabs(expected - result) > EPSILON * expected) {
+  if (result != expected) {
     fprintf(stderr, "Error: expected %d, got %d (error:%f %%)\n",
-      expected, result, (fabs(expected - result) / expected) * 100.0);
+      expected, result, (abs((float)expected - (float)result) / (float)expected) * 100.0);
   } else {
     printf("Correct\n");
   }
@@ -146,12 +165,6 @@ int main(const int argc, const char **argv) {
   // free host
   free(a);
   free(b);
-  free(c);
-
-  // free device
-  HANDLE_ERROR(cudaFree(dev_a));
-  HANDLE_ERROR(cudaFree(dev_b));
-  HANDLE_ERROR(cudaFree(dev_c));
 
   return 0;
 }

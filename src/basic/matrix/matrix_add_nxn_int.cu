@@ -21,7 +21,7 @@
 #include "../../common/random.h"
 #include "../../common/matrix.h"
 
-__global__ void add(const int *a, const int *b, int *c, const unsigned int dim) {
+__global__ void matrixAdd(const int *a, const int *b, int *c, const unsigned int dim) {
   const unsigned int iX = blockIdx.x * blockDim.x + threadIdx.x;
   const unsigned int iY = blockIdx.y * blockDim.y + threadIdx.y;
 
@@ -31,11 +31,35 @@ __global__ void add(const int *a, const int *b, int *c, const unsigned int dim) 
   c[pos] = a[pos] + b[pos];
 }
 
-int main(const int argc, const char **argv) {
-  int *a, *b, *c;             // host copies of a, b, c
+__host__ void gpuMatrixAdd(const int *a, const int *b, int *c, const unsigned int matrixDim, const dim3 gridDim, const dim3 blockDim) {
   int *dev_a, *dev_b, *dev_c; // device copies of a, b, c
+  const unsigned int size = matrixDim * matrixDim * sizeof(int); // bytes for a, b, c
+
+  // allocate device copies of a, b, c
+  HANDLE_ERROR(cudaMalloc((void**)&dev_a, size));
+  HANDLE_ERROR(cudaMalloc((void**)&dev_b, size));
+  HANDLE_ERROR(cudaMalloc((void**)&dev_c, size));
+
+  // copy inputs to device
+  HANDLE_ERROR(cudaMemcpy(dev_a, a, size, cudaMemcpyHostToDevice));
+  HANDLE_ERROR(cudaMemcpy(dev_b, b, size, cudaMemcpyHostToDevice));
+
+  // launch kernel matrixAdd()
+  matrixAdd<<< gridDim, blockDim >>>(dev_a, dev_b, dev_c, matrixDim);
+
+  // copy device result back to host copy of c
+  HANDLE_ERROR(cudaMemcpy(c, dev_c, size, cudaMemcpyDeviceToHost));
+
+  // free device
+  HANDLE_ERROR(cudaFree(dev_a));
+  HANDLE_ERROR(cudaFree(dev_b));
+  HANDLE_ERROR(cudaFree(dev_c));
+}
+
+int main(const int argc, const char **argv) {
+  int *a, *b, *c;    // host copies of a, b, c
   unsigned int size; // bytes for a, b, c
-  unsigned int matrixDim; // matrix dimension
+  unsigned int matrixDim; // matrix dimensions
   unsigned int gridSize; // grid size
   unsigned int blockSize; // block size
   cudaDeviceProp gpuInfo; // gpu properties
@@ -88,30 +112,19 @@ int main(const int argc, const char **argv) {
   HANDLE_NULL(b = (int*)malloc(size));
   HANDLE_NULL(c = (int*)malloc(size));
 
-  // allocate device copies of a, b, c
-  HANDLE_ERROR(cudaMalloc((void**)&dev_a, size));
-  HANDLE_ERROR(cudaMalloc((void**)&dev_b, size));
-  HANDLE_ERROR(cudaMalloc((void**)&dev_c, size));
-
   // fill a, b with random data
   random_matrix_int(a, matrixDim, matrixDim);
   random_matrix_int(b, matrixDim, matrixDim);
 
-  // copy inputs to device
-  HANDLE_ERROR(cudaMemcpy(dev_a, a, size, cudaMemcpyHostToDevice));
-  HANDLE_ERROR(cudaMemcpy(dev_b, b, size, cudaMemcpyHostToDevice));
-
-  // launch add() kernel
-  add<<< gridDim, blockDim >>>(dev_a, dev_b, dev_c, matrixDim);
-
-  // copy device result back to host copy of c
-  HANDLE_ERROR(cudaMemcpy(c, dev_c, size, cudaMemcpyDeviceToHost));
+  // launch kernel matrixAdd()
+  gpuMatrixAdd(a, b, c, matrixDim, gridDim, blockDim);
 
   // test result
   int *expected;
   HANDLE_NULL(expected = (int*)malloc(size));
   matrix_add_int(a, b, expected, matrixDim, matrixDim);
-  if (!matrix_equals_int(c, expected, matrixDim, matrixDim)) {
+  const bool equal = matrix_equals_int(c, expected, matrixDim, matrixDim);
+  if (!equal) {
     fprintf(stderr, "Error\n");
   } else {
     printf("Correct\n");
@@ -122,11 +135,6 @@ int main(const int argc, const char **argv) {
   free(b);
   free(c);
   free(expected);
-
-  // free device
-  HANDLE_ERROR(cudaFree(dev_a));
-  HANDLE_ERROR(cudaFree(dev_b));
-  HANDLE_ERROR(cudaFree(dev_c));
 
   return 0;
 }

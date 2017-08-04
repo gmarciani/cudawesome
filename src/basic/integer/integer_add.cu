@@ -12,19 +12,19 @@
 #include <stdio.h>
 #include "../../common/error.h"
 
-__global__ void add(const int a, const int b, int *c) {
+__global__ void intAdd(const int a, const int b, int *c) {
   *c = a + b;
 }
 
-__host__ void gpuAdd(const int a, const int b, int *c, const dim3 gridDim, const dim3 blockDim) {
+__host__ void gpuIntAdd(const int a, const int b, int *c, const dim3 gridDim, const dim3 blockDim) {
   int *dev_c; // device copies of c
   const unsigned int size = sizeof(int); // bytes for and integer
 
   // allocate device copies of c
   HANDLE_ERROR(cudaMalloc((void**)&dev_c, size));
 
-  // launch add() kernel
-  add<<< gridDim, blockDim >>>(a, b, dev_c);
+  // launch kernel intAdd()
+  intAdd<<< gridDim, blockDim >>>(a, b, dev_c);
 
   // copy device result back to host copy of c
   HANDLE_ERROR(cudaMemcpy(c, dev_c, size, cudaMemcpyDeviceToHost));
@@ -46,10 +46,10 @@ int main(const int argc, char **argv) {
   a = atoi(argv[1]);
   b = atoi(argv[2]);
 
-  // launch add() kernel
+  // launch kernel intAdd()
   dim3 gridDim(1);
   dim3 blockDim(1);
-  gpuAdd(a, b, &c, gridDim, blockDim);
+  gpuIntAdd(a, b, &c, gridDim, blockDim);
 
   // test result
   const int expected = a + b;

@@ -30,7 +30,7 @@
 
 #define EPSILON (float)1e-5
 
-__global__ void mul(const REAL *a, const REAL *b, REAL *c, const unsigned int dim) {
+__global__ void matrixMul(const REAL *a, const REAL *b, REAL *c, const unsigned int dim) {
   const unsigned int iX = blockIdx.x * blockDim.x + threadIdx.x;
   const unsigned int iY = blockIdx.y * blockDim.y + threadIdx.y;
 
@@ -46,12 +46,36 @@ __global__ void mul(const REAL *a, const REAL *b, REAL *c, const unsigned int di
   c[pos] = val;
 }
 
+__host__ void gpuMatrixMul(const REAL *a, const REAL *b, REAL *c, const unsigned int matrixDim, const dim3 gridDim, const dim3 blockDim) {
+  REAL *dev_a, *dev_b, *dev_c; // device copies of a, b, c
+  const unsigned int size = matrixDim * matrixDim * sizeof(REAL); // bytes for a, b, c
+
+  // allocate device copy of a, b, c
+  HANDLE_ERROR(cudaMalloc((void**)&dev_a, size));
+  HANDLE_ERROR(cudaMalloc((void**)&dev_b, size));
+  HANDLE_ERROR(cudaMalloc((void**)&dev_c, size));
+
+  // copy inputs to device
+  HANDLE_ERROR(cudaMemcpy(dev_a, a, size, cudaMemcpyHostToDevice));
+  HANDLE_ERROR(cudaMemcpy(dev_b, b, size, cudaMemcpyHostToDevice));
+
+  // launch mul() kernel
+  matrixMul<<< gridDim, blockDim >>>(dev_a, dev_b, dev_c, matrixDim);
+
+  // copy device result back to host copy of c
+  HANDLE_ERROR(cudaMemcpy(c, dev_c, size, cudaMemcpyDeviceToHost));
+
+  // free device
+  HANDLE_ERROR(cudaFree(dev_a));
+  HANDLE_ERROR(cudaFree(dev_b));
+  HANDLE_ERROR(cudaFree(dev_c));
+}
+
 int main(const int argc, const char **argv) {
   REAL *a, *b, *c;         // host copies of a, b, c
-  REAL *dev_a, *dev_b, *dev_c; // device copies of a, b, c
   unsigned int size; // bytes for a, b, c
-  unsigned int matrixDim; // matrix dimension
-  unsigned int gridSize; // grid size
+  unsigned int matrixDim; // matrices dimensions
+  unsigned int gridSizeX, gridSizeY; // grid size
   unsigned int blockSize; // block size
   cudaDeviceProp gpuInfo; // gpu properties
 
@@ -75,11 +99,15 @@ int main(const int argc, const char **argv) {
   }
 
   // grid settings
-  gridSize = matrixDim / blockSize;
-  if (gridSize * blockSize < matrixDim) {
-     gridSize += 1;
+  gridSizeX = matrixDim / blockSize;
+  if (gridSizeX * blockSize < matrixDim) {
+     gridSizeX += 1;
   }
-  dim3 gridDim(gridSize, gridSize);
+  gridSizeY = matrixDim / blockSize;
+  if (gridSizeY * blockSize < matrixDim) {
+     gridSizeY += 1;
+  }
+  dim3 gridDim(gridSizeX, gridSizeY);
   dim3 blockDim(blockSize, blockSize);
 
   size = matrixDim * matrixDim * sizeof(REAL);
@@ -87,7 +115,7 @@ int main(const int argc, const char **argv) {
   HANDLE_ERROR(cudaGetDeviceProperties(&gpuInfo, 0));
 
   printf("------------------------------------\n");
-  printf("Matrix (NxN) Floating-Point Product\n");
+  printf("Matrix (NxM) Floating-Point Product\n");
   printf("------------------------------------\n");
   #ifdef DOUBLE
   printf("FP Precision: Double\n");
@@ -109,11 +137,6 @@ int main(const int argc, const char **argv) {
   HANDLE_NULL(b = (REAL*)malloc(size));
   HANDLE_NULL(c = (REAL*)malloc(size));
 
-  // allocate device copy of a, b, c
-  HANDLE_ERROR(cudaMalloc((void**)&dev_a, size));
-  HANDLE_ERROR(cudaMalloc((void**)&dev_b, size));
-  HANDLE_ERROR(cudaMalloc((void**)&dev_c, size));
-
   // fill a, b with random data
   #ifdef DOUBLE
   random_matrix_double(a, matrixDim, matrixDim);
@@ -123,15 +146,8 @@ int main(const int argc, const char **argv) {
   random_matrix_float(b, matrixDim, matrixDim);
   #endif
 
-  // copy inputs to device
-  HANDLE_ERROR(cudaMemcpy(dev_a, a, size, cudaMemcpyHostToDevice));
-  HANDLE_ERROR(cudaMemcpy(dev_b, b, size, cudaMemcpyHostToDevice));
-
-  // launch mul() kernel
-  mul<<< gridDim, blockDim >>>(dev_a, dev_b, dev_c, matrixDim);
-
-  // copy device result back to host copy of c
-  HANDLE_ERROR(cudaMemcpy(c, dev_c, size, cudaMemcpyDeviceToHost));
+  // launch kernel matrixMul()
+  gpuMatrixMul(a, b, c, matrixDim, gridDim, blockDim);
 
   // test result
   REAL *expected;
@@ -154,11 +170,6 @@ int main(const int argc, const char **argv) {
   free(b);
   free(c);
   free(expected);
-
-  // free device
-  HANDLE_ERROR(cudaFree(dev_a));
-  HANDLE_ERROR(cudaFree(dev_b));
-  HANDLE_ERROR(cudaFree(dev_c));
 
   return 0;
 }

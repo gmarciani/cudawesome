@@ -20,15 +20,7 @@
 #include "../../common/vector.h"
 #include "../../common/mathutil.h"
 
-#ifdef DOUBLE
-#define REAL double
-#else
-#define REAL float
-#endif
-
-#define EPSILON (float)1e-5
-
-__global__ void add(const int *a, const int *b, int *c, const unsigned int dim) {
+__global__ void vectorAdd(const int *a, const int *b, int *c, const unsigned int dim) {
   const unsigned int pos = blockIdx.x * blockDim.x + threadIdx.x;
 
   if (pos >= dim) return;
@@ -36,9 +28,33 @@ __global__ void add(const int *a, const int *b, int *c, const unsigned int dim) 
   c[pos] = a[pos] + b[pos];
 }
 
-int main(const int argc, const char **argv) {
-  int *a, *b, *c;             // host copies of a, b, c
+__host__ void gpuVectorAdd(const int *a, const int *b, int *c, const unsigned int vectorDim, const dim3 gridDim, const dim3 blockDim) {
   int *dev_a, *dev_b, *dev_c; // device copies of a, b, c
+  const unsigned int size = vectorDim * sizeof(int); // bytes for a, b, c
+
+  // allocate device copies of a, b, c
+  HANDLE_ERROR(cudaMalloc((void**)&dev_a, size));
+  HANDLE_ERROR(cudaMalloc((void**)&dev_b, size));
+  HANDLE_ERROR(cudaMalloc((void**)&dev_c, size));
+
+  // copy inputs to device
+  HANDLE_ERROR(cudaMemcpy(dev_a, a, size, cudaMemcpyHostToDevice));
+  HANDLE_ERROR(cudaMemcpy(dev_b, b, size, cudaMemcpyHostToDevice));
+
+  // launch kernel vectorAdd()
+  vectorAdd<<< gridDim, blockDim >>>(dev_a, dev_b, dev_c, vectorDim);
+
+  // copy device result back to host copy of c
+  HANDLE_ERROR(cudaMemcpy(c, dev_c, size, cudaMemcpyDeviceToHost));
+
+  // free device
+  HANDLE_ERROR(cudaFree(dev_a));
+  HANDLE_ERROR(cudaFree(dev_b));
+  HANDLE_ERROR(cudaFree(dev_c));
+}
+
+int main(const int argc, const char **argv) {
+  int *a, *b, *c;    // host copies of a, b, c
   unsigned int size; // bytes for a, b, c
   unsigned int vectorDim; // vector dimension
   unsigned int gridSize;  // grid size
@@ -80,8 +96,12 @@ int main(const int argc, const char **argv) {
   printf("Vector Integer Sum\n");
   printf("----------------------------------\n");
   printf("Vector Dimension: %d\n", vectorDim);
-  printf("Grid Size: %d (max: %d)\n", gridSize, gpuInfo.maxGridSize[0]);
-  printf("Block Size: %d (max: %d)\n", blockSize, gpuInfo.maxThreadsDim[1]);
+  printf("Grid Size: (%d %d %d) (max: (%d %d %d))\n",
+    gridDim.x, gridDim.y, gridDim.z,
+    gpuInfo.maxGridSize[0], gpuInfo.maxGridSize[1], gpuInfo.maxGridSize[2]);
+  printf("Block Size: (%d %d %d) (max: (%d %d %d))\n",
+    blockDim.x, blockDim.y, blockDim.z,
+    gpuInfo.maxThreadsDim[0], gpuInfo.maxThreadsDim[1], gpuInfo.maxThreadsDim[2]);
   printf("---------------------------------\n");
 
   // allocate host copies of a, b, c
@@ -89,31 +109,19 @@ int main(const int argc, const char **argv) {
   HANDLE_NULL(b = (int*)malloc(size));
   HANDLE_NULL(c = (int*)malloc(size));
 
-  // allocate device copies of a, b, c
-  HANDLE_ERROR(cudaMalloc((void**)&dev_a, size));
-  HANDLE_ERROR(cudaMalloc((void**)&dev_b, size));
-  HANDLE_ERROR(cudaMalloc((void**)&dev_c, size));
-
   // fill a, b with random data
   random_vector_int(a, vectorDim);
   random_vector_int(b, vectorDim);
 
-  // copy inputs to device
-  HANDLE_ERROR(cudaMemcpy(dev_a, a, size, cudaMemcpyHostToDevice));
-  HANDLE_ERROR(cudaMemcpy(dev_b, b, size, cudaMemcpyHostToDevice));
-
-  // launch add() kernel
-  add<<< gridDim, blockDim >>>(dev_a, dev_b, dev_c, vectorDim);
-
-  // copy device result back to host copy of c
-  HANDLE_ERROR(cudaMemcpy(c, dev_c, size, cudaMemcpyDeviceToHost));
+  // launch kernel vectorAdd()
+  gpuVectorAdd(a, b, c, vectorDim, gridDim, blockDim);
 
   // test result
-  int *d;
-  HANDLE_NULL(d = (int*)malloc(size));
-  vector_add_int(a, b, d, vectorDim);
-  const bool equal = vector_equals_err_int(c, d, vectorDim, EPSILON);
-  if (!equal) {
+  int *expected;
+  HANDLE_NULL(expected = (int*)malloc(size));
+  vector_add_int(a, b, expected, vectorDim);
+  const bool correct = vector_equals_int(c, expected, vectorDim);
+  if (!correct) {
     fprintf(stderr, "Error\n");
   } else {
     printf("Correct\n");
@@ -123,12 +131,7 @@ int main(const int argc, const char **argv) {
   free(a);
   free(b);
   free(c);
-  free(d);
-
-  // free device
-  HANDLE_ERROR(cudaFree(dev_a));
-  HANDLE_ERROR(cudaFree(dev_b));
-  HANDLE_ERROR(cudaFree(dev_c));
+  free(expected);
 
   return 0;
 }
