@@ -54,6 +54,7 @@ int main(const int argc, const char **argv) {
   unsigned int vectorDim; // vector dimension
   unsigned int gridSize;  // grid size
   unsigned int blockSize; // block size
+  cudaDeviceProp gpuInfo; // gpu properties
 
   // check arguments
   if (argc < 3) {
@@ -74,6 +75,8 @@ int main(const int argc, const char **argv) {
     exit(1);
   }
 
+  HANDLE_ERROR(cudaGetDeviceProperties(&gpuInfo, 0));
+
   gridSize = vectorDim / blockSize;
   if (gridSize * blockSize < vectorDim) {
     gridSize += 1;
@@ -87,8 +90,8 @@ int main(const int argc, const char **argv) {
   printf("Reduction: sequential addressing\n");
   printf("--------------------------------\n");
   printf("Vector Dimension: %d\n", vectorDim);
-  printf("Grid Size: %d\n", gridSize);
-  printf("Block Size: %d\n", blockSize);
+  printf("Grid Size: %d (max: %d)\n", gridSize, gpuInfo.maxGridSize[0]);
+  printf("Block Size: %d (max: %d)\n", blockSize, gpuInfo.maxThreadsDim[1]);
   printf("--------------------------------\n");
 
   // allocate host copies of a, b, c
@@ -129,7 +132,8 @@ int main(const int argc, const char **argv) {
   int expected;
   vector_dot_int(a, b, &expected, vectorDim);
   if (result != expected) {
-    fprintf(stderr, "Error: %.f %%\n", (abs(result - expected) / expected) * 100.0);
+    fprintf(stderr, "Error: expected %d, got %d (error:%f %%)\n",
+      expected, result, (((float)result - (float)expected) / (float)expected) * 100.0);
   } else {
     printf("Correct\n");
   }

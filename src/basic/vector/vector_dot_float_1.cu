@@ -60,6 +60,7 @@ int main(const int argc, const char **argv) {
   unsigned int vectorDim; // vector dimension
   unsigned int gridSize;  // grid size
   unsigned int blockSize; // block size
+  cudaDeviceProp gpuInfo; // gpu properties
 
   // check arguments
   if (argc < 3) {
@@ -80,6 +81,8 @@ int main(const int argc, const char **argv) {
     exit(1);
   }
 
+  HANDLE_ERROR(cudaGetDeviceProperties(&gpuInfo, 0));
+
   gridSize = vectorDim / blockSize;
   if (gridSize * blockSize < vectorDim) {
     gridSize += 1;
@@ -88,19 +91,19 @@ int main(const int argc, const char **argv) {
   size_a_b = vectorDim * sizeof(REAL);
   size_c = gridSize * sizeof(REAL);
 
-  printf("---------------------------------\n");
+  printf("----------------------------------\n");
   printf("Vector Floating-Point Dot Product\n");
   printf("Reduction: interleaving addressing\n");
-  printf("---------------------------------\n");
+  printf("----------------------------------\n");
   #ifdef DOUBLE
   printf("FP Precision: Double\n");
   #else
   printf("FP Precision: Single\n");
   #endif
   printf("Vector Dimension: %d\n", vectorDim);
-  printf("Grid Size: %d\n", gridSize);
-  printf("Block Size: %d\n", blockSize);
-  printf("--------------------------------\n");
+  printf("Grid Size: %d (max: %d)\n", gridSize, gpuInfo.maxGridSize[0]);
+  printf("Block Size: %d (max: %d)\n", blockSize, gpuInfo.maxThreadsDim[1]);
+  printf("---------------------------------\n");
 
   // allocate host copies of a, b, c
   HANDLE_NULL(a = (REAL*)malloc(size_a_b));
@@ -149,7 +152,8 @@ int main(const int argc, const char **argv) {
   vector_dot_float(a, b, &expected, vectorDim);
   #endif
   if (result != expected) {
-    fprintf(stderr, "Error: %.f %%\n", (abs(result - expected) / expected) * 100.0);
+    fprintf(stderr, "Error: expected %f, got %f (error:%f %%)\n",
+      expected, result, ((result - expected) / expected) * 100.0);
   } else {
     printf("Correct\n");
   }
