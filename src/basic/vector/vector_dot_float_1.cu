@@ -1,15 +1,15 @@
 /*
  * @Name: vector_dot_int_1.cu
- * @Description: Integer vectors dot-product.
+ * @Description: Vector Floating-Point Dot Product.
  * Multiple blocks, multiple threads per block.
  *
  * @Author: Giacomo Marciani <gmarciani@acm.org>
  * @Institution: University of Rome Tor Vergata
  *
- * @Usage: vector_dot_int_1 vectorDimension blockSize
+ * @Usage: vector_dot_int_1 vectorDim blockSize
  *
  * Default values:
- *  vectorDimension: 4096
+ *  vectorDim: 4096
  *  blockSize: 32
  *
  * @See: http://developer.download.nvidia.com/compute/cuda/1.1-Beta/x86_website/projects/reduction/doc/reduction.pdf
@@ -81,8 +81,6 @@ int main(const int argc, const char **argv) {
     exit(1);
   }
 
-  HANDLE_ERROR(cudaGetDeviceProperties(&gpuInfo, 0));
-
   gridSize = vectorDim / blockSize;
   if (gridSize * blockSize < vectorDim) {
     gridSize += 1;
@@ -90,6 +88,8 @@ int main(const int argc, const char **argv) {
 
   size_a_b = vectorDim * sizeof(REAL);
   size_c = gridSize * sizeof(REAL);
+
+  HANDLE_ERROR(cudaGetDeviceProperties(&gpuInfo, 0));
 
   printf("----------------------------------\n");
   printf("Vector Floating-Point Dot Product\n");

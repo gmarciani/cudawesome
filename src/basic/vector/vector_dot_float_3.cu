@@ -1,6 +1,6 @@
 /*
  * @Name: vector_dot_int_3.cu
- * @Description: Integer vectors dot-product.
+ * @Description: Vector Floating-Point Dot Product.
  * Multiple blocks, multiple threads per block.
  *
  * @Author: Giacomo Marciani <gmarciani@acm.org>
@@ -83,8 +83,6 @@ int main(const int argc, const char **argv) {
     exit(1);
   }
 
-  HANDLE_ERROR(cudaGetDeviceProperties(&gpuInfo, 0));
-
   gridSize = vectorDim / blockSize;
   if (gridSize * blockSize < vectorDim) {
     gridSize += 1;
@@ -92,6 +90,8 @@ int main(const int argc, const char **argv) {
 
   size_a_b = vectorDim * sizeof(REAL);
   size_c = gridSize * sizeof(REAL);
+
+  HANDLE_ERROR(cudaGetDeviceProperties(&gpuInfo, 0));
 
   printf("----------------------------------------------\n");
   printf("Vector Floating-Point Dot Product\n");

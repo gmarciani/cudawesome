@@ -1,6 +1,6 @@
 /*
  * @Name: vector_dot_int_2.cu
- * @Description: Integer vectors dot-product.
+ * @Description: Vector Integer Dot Product.
  * Multiple blocks, multiple threads per block.
  *
  * @Author: Giacomo Marciani <gmarciani@acm.org>
@@ -75,8 +75,6 @@ int main(const int argc, const char **argv) {
     exit(1);
   }
 
-  HANDLE_ERROR(cudaGetDeviceProperties(&gpuInfo, 0));
-
   gridSize = vectorDim / blockSize;
   if (gridSize * blockSize < vectorDim) {
     gridSize += 1;
@@ -84,6 +82,8 @@ int main(const int argc, const char **argv) {
 
   size_a_b = vectorDim * sizeof(int);
   size_c = gridSize * sizeof(int);
+
+  HANDLE_ERROR(cudaGetDeviceProperties(&gpuInfo, 0));
 
   printf("--------------------------------\n");
   printf("Vector Integer Dot Product\n");

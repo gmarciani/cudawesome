@@ -1,6 +1,6 @@
 /*
  * @Name: vector_add_int.cu
- * @Description: Addition of two integer vectors.
+ * @Description: Vector Integer Sum.
  * Custom vector dimension and block size.
  *
  * @Author: Giacomo Marciani <gmarciani@acm.org>
@@ -61,8 +61,6 @@ int main(const int argc, const char **argv) {
     exit(1);
   }
 
-  HANDLE_ERROR(cudaGetDeviceProperties(&gpuInfo, 0));
-
   gridSize = vectorDim / blockSize;
   if (gridSize * blockSize < vectorDim) {
     gridSize += 1;
@@ -70,8 +68,10 @@ int main(const int argc, const char **argv) {
 
   size = vectorDim * sizeof(int);
 
+  HANDLE_ERROR(cudaGetDeviceProperties(&gpuInfo, 0));
+
   printf("----------------------------------\n");
-  printf("Vector Integer Addition\n");
+  printf("Vector Integer Sum\n");
   printf("----------------------------------\n");
   printf("Vector Dimension: %d\n", vectorDim);
   printf("Grid Size: %d (max: %d)\n", gridSize, gpuInfo.maxGridSize[0]);

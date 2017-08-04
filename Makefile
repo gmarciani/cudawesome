@@ -61,20 +61,40 @@ integer_add: $(INTEGER_DIR)/integer_add.cu
 ##
 matrix: all_matrix_add all_matrix_mul
 
-all_matrix_add: matrix_add_nxm matrix_add_nxn
+all_matrix_add: all_matrix_add_float all_matrix_add_int
 
-all_matrix_mul: matrix_mul_nxm matrix_mul_nxn
+all_matrix_add_float: matrix_add_nxm_float matrix_add_nxn_float
 
-matrix_add_nxm: $(MATRIX_DIR)/matrix_add_nxm.cu
+all_matrix_add_int: matrix_add_nxm_int matrix_add_nxn_int
+
+all_matrix_mul: all_matrix_mul_float all_matrix_mul_int
+
+all_matrix_mul_float: matrix_mul_nxm_float matrix_mul_nxn_float
+
+all_matrix_mul_int: matrix_mul_nxm_int matrix_mul_nxn_int
+
+matrix_add_nxm_float: $(MATRIX_DIR)/matrix_add_nxm_float.cu
 	$(CC) $(CFLAGS) $(MFLAGS) $(OFLAGS) -o $(BIN)/$@ $^
 
-matrix_add_nxn: $(MATRIX_DIR)/matrix_add_nxn.cu
+matrix_add_nxn_float: $(MATRIX_DIR)/matrix_add_nxn_float.cu
 	$(CC) $(CFLAGS) $(MFLAGS) $(OFLAGS) -o $(BIN)/$@ $^
 
-matrix_mul_nxm: $(MATRIX_DIR)/matrix_mul_nxm.cu
+matrix_add_nxm_int: $(MATRIX_DIR)/matrix_add_nxm_int.cu
 	$(CC) $(CFLAGS) $(MFLAGS) $(OFLAGS) -o $(BIN)/$@ $^
 
-matrix_mul_nxn: $(MATRIX_DIR)/matrix_mul_nxn.cu
+matrix_add_nxn_int: $(MATRIX_DIR)/matrix_add_nxn_int.cu
+	$(CC) $(CFLAGS) $(MFLAGS) $(OFLAGS) -o $(BIN)/$@ $^
+
+matrix_mul_nxm_float: $(MATRIX_DIR)/matrix_mul_nxm_float.cu
+	$(CC) $(CFLAGS) $(MFLAGS) $(OFLAGS) -o $(BIN)/$@ $^
+
+matrix_mul_nxn_float: $(MATRIX_DIR)/matrix_mul_nxn_float.cu
+	$(CC) $(CFLAGS) $(MFLAGS) $(OFLAGS) -o $(BIN)/$@ $^
+
+matrix_mul_nxm_int: $(MATRIX_DIR)/matrix_mul_nxm_int.cu
+	$(CC) $(CFLAGS) $(MFLAGS) $(OFLAGS) -o $(BIN)/$@ $^
+
+matrix_mul_nxn_int: $(MATRIX_DIR)/matrix_mul_nxn_int.cu
 	$(CC) $(CFLAGS) $(MFLAGS) $(OFLAGS) -o $(BIN)/$@ $^
 
 ##
