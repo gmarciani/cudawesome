@@ -1,29 +1,37 @@
 /*
- * @Name: vector_dot_int_2.cu
- * @Description: Vector Integer Dot Product.
+ * @Name: vector_dot_int_1.cu
+ * @Description: Vector Floating-Point Dot Product.
  * Multiple blocks, multiple threads per block.
  *
  * @Author: Giacomo Marciani <gmarciani@acm.org>
  * @Institution: University of Rome Tor Vergata
  *
- * @Usage: vector_dot_int_2 vectorDimension blockSize
+ * @Usage: vector_dot_int_1 vectorDim blockSize
  *
  * Default values:
- *  vectorDimension: 4096
- *  blockSize: 32
+ *  vectorDim: 1048576
+ *  blockSize: 256
  *
  * @See: http://developer.download.nvidia.com/compute/cuda/1.1-Beta/x86_website/projects/reduction/doc/reduction.pdf
  */
 
 #include <stdio.h>
 #include <math.h>
-#include "../../common/error.h"
-#include "../../common/random.h"
-#include "../../common/vector.h"
-#include "../../common/mathutil.h"
+#include "../../../common/error.h"
+#include "../../../common/random.h"
+#include "../../../common/vector.h"
+#include "../../../common/mathutil.h"
 
-__global__ void vectorDot(const int *a, const int *b, int *c, const unsigned int vectorDim) {
-  extern __shared__ int temp[];
+#ifdef DOUBLE
+#define REAL double
+#else
+#define REAL float
+#endif
+
+#define EPSILON (float)1e-5
+
+__global__ void vectorDot(const REAL *a, const REAL *b, REAL *c, const unsigned int vectorDim) {
+  extern __shared__ REAL temp[];
 
   const unsigned int tid = threadIdx.x;
   const unsigned int pos = blockIdx.x * blockDim.x + threadIdx.x;
@@ -34,8 +42,8 @@ __global__ void vectorDot(const int *a, const int *b, int *c, const unsigned int
 
   __syncthreads();
 
-  for (unsigned int stride = blockDim.x / 2; stride > 0; stride >>= 1) {
-    if (tid < stride) {
+  for (unsigned int stride = 1; stride < blockDim.x; stride *= 2) {
+    if (tid % (2 * stride) == 0) {
       temp[tid] += temp[tid + stride];
     }
     __syncthreads();
@@ -46,14 +54,14 @@ __global__ void vectorDot(const int *a, const int *b, int *c, const unsigned int
   }
 }
 
-__host__ void gpuVectorDot(const int *a, const int *b, int *result, const unsigned int vectorDim, const dim3 gridDim, const dim3 blockDim) {
-  int *dev_a, *dev_b, *dev_partial; // device copies of a, b, partial
-  int *partial; // host copy for partial result
-  const unsigned int size_a_b = vectorDim * sizeof(int); // bytes for a, b
-  const unsigned int size_partial = gridDim.x * sizeof(int); // bytes for partial
+__host__ void gpuVectorDot(const REAL *a, const REAL *b, REAL *result, const unsigned int vectorDim, const dim3 gridDim, const dim3 blockDim) {
+  REAL *dev_a, *dev_b, *dev_partial; // device copies of a, b, partial
+  REAL *partial; // host copy for partial result
+  const unsigned int size_a_b = vectorDim * sizeof(REAL); // bytes for a, b
+  const unsigned int size_partial = gridDim.x * sizeof(REAL); // bytes for partial
 
   // allocate host copies of partial
-  HANDLE_NULL(partial = (int*)malloc(size_partial));
+  HANDLE_NULL(partial = (REAL*)malloc(size_partial));
 
   // allocate device copies of a, b, c
   HANDLE_ERROR(cudaMalloc((void**)&dev_a, size_a_b));
@@ -61,12 +69,12 @@ __host__ void gpuVectorDot(const int *a, const int *b, int *result, const unsign
   HANDLE_ERROR(cudaMalloc((void**)&dev_partial, size_partial));
 
   // copy inputs to device
-  HANDLE_ERROR(cudaMemcpy(dev_a, a, size_a_b, cudaMemcpyHostToDevice));
-  HANDLE_ERROR(cudaMemcpy(dev_b, b, size_a_b, cudaMemcpyHostToDevice));
-  HANDLE_ERROR(cudaMemset(dev_partial, 0, size_partial));
+  HANDLE_ERROR(cudaMemcpyAsync(dev_a, a, size_a_b, cudaMemcpyHostToDevice));
+  HANDLE_ERROR(cudaMemcpyAsync(dev_b, b, size_a_b, cudaMemcpyHostToDevice));
+  HANDLE_ERROR(cudaMemsetAsync(dev_partial, 0.0f, size_partial));
 
   // shared memory settings
-  const unsigned int sharedMemSize = (unsigned int) blockDim.x * sizeof(int);
+  const unsigned int sharedMemSize = (unsigned int) blockDim.x * sizeof(REAL);
 
   // launch kernel vectorDot
   vectorDot<<< gridDim, blockDim, sharedMemSize >>>(dev_a, dev_b, dev_partial, vectorDim);
@@ -75,7 +83,7 @@ __host__ void gpuVectorDot(const int *a, const int *b, int *result, const unsign
   HANDLE_ERROR(cudaMemcpy(partial, dev_partial, size_partial, cudaMemcpyDeviceToHost));
 
   // reduce blocks result
-  *result = 0;
+  *result = 0.0f;
   for (unsigned int block = 0; block < gridDim.x; block++) {
     (*result) += partial[block];
   }
@@ -90,7 +98,7 @@ __host__ void gpuVectorDot(const int *a, const int *b, int *result, const unsign
 }
 
 int main(const int argc, const char **argv) {
-  int *a, *b, result; // host copies of a, b, result
+  REAL *a, *b, result; // host copies of a, b, result
   unsigned int vectorDim; // vector dimension
   unsigned int size_a_b; // bytes for a, b
   unsigned int gridSize;  // grid size
@@ -124,14 +132,19 @@ int main(const int argc, const char **argv) {
   dim3 gridDim(gridSize);
   dim3 blockDim(blockSize);
 
-  size_a_b = vectorDim * sizeof(int);
+  size_a_b = vectorDim * sizeof(REAL);
 
   HANDLE_ERROR(cudaGetDeviceProperties(&gpuInfo, 0));
 
   printf("----------------------------------\n");
-  printf("Vector Integer Dot Product\n");
-  printf("Reduction: sequential addressing\n");
+  printf("Vector Floating-Point Dot Product\n");
+  printf("Reduction: interleaving addressing\n");
   printf("----------------------------------\n");
+  #ifdef DOUBLE
+  printf("FP Precision: Double\n");
+  #else
+  printf("FP Precision: Single\n");
+  #endif
   printf("Vector Dimension: %d\n", vectorDim);
   printf("Grid Size: (%d %d %d) (max: (%d %d %d))\n",
     gridDim.x, gridDim.y, gridDim.z,
@@ -142,22 +155,31 @@ int main(const int argc, const char **argv) {
   printf("---------------------------------\n");
 
   // allocate host copies of a, b, c
-  HANDLE_NULL(a = (int*)malloc(size_a_b));
-  HANDLE_NULL(b = (int*)malloc(size_a_b));
+  HANDLE_NULL(a = (REAL*)malloc(size_a_b));
+  HANDLE_NULL(b = (REAL*)malloc(size_a_b));
 
   // fill a, b with random data
-  random_vector_int(a, vectorDim);
-  random_vector_int(b, vectorDim);
+  #ifdef DOUBLE
+  random_vector_double(a, vectorDim);
+  random_vector_double(b, vectorDim);
+  #else
+  random_vector_float(a, vectorDim);
+  random_vector_float(b, vectorDim);
+  #endif
 
   // launch kernel vectorDot()
   gpuVectorDot(a, b, &result, vectorDim, gridDim, blockDim);
 
   // test result
-  int expected;
-  vector_dot_int(a, b, &expected, vectorDim);
-  if (result != expected) {
-    fprintf(stderr, "Error: expected %d, got %d (error:%f %%)\n",
-      expected, result, (abs((float)expected - (float)result) / (float)expected) * 100.0);
+  REAL expected;
+  #if DOUBLE
+  vector_dot_double(a, b, &expected, vectorDim);
+  #else
+  vector_dot_float(a, b, &expected, vectorDim);
+  #endif
+  if (fabs(expected - result) > EPSILON * expected) {
+    fprintf(stderr, "Error: expected %f, got %f (error:%f %%)\n",
+      expected, result, (fabs(expected - result) / expected) * 100.0);
   } else {
     printf("Correct\n");
   }

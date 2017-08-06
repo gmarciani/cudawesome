@@ -1,24 +1,28 @@
 /*
- * @Name: vector_add_int.cu
+ * @Name: vector_sum_int_opt.cu
  * @Description: Vector Integer Sum.
  * Custom vector dimension and block size.
  *
  * @Author: Giacomo Marciani <gmarciani@acm.org>
  * @Institution: University of Rome Tor Vergata
  *
- * @Usage: vector_add_int vectorDimension blockSize
+ * @Usage: vector_sum_int_opt vectorDim blockSize
  *
  * Default values:
- *  vectorDimension: 4096
- *  blockSize: 32
+ *  vectorDim: 1048576
+ *  blockSize: 256
+ *
+ * @Note: possible optimizations are:
+ *  gride-stride loops: https://devblogs.nvidia.com/parallelforall/cuda-pro-tip-write-flexible-kernels-grid-stride-loops/
+ *
  */
 
 #include <stdio.h>
 #include <math.h>
-#include "../../common/error.h"
-#include "../../common/random.h"
-#include "../../common/vector.h"
-#include "../../common/mathutil.h"
+#include "../../../common/error.h"
+#include "../../../common/random.h"
+#include "../../../common/vector.h"
+#include "../../../common/mathutil.h"
 
 __global__ void vectorAdd(const int *a, const int *b, int *c, const unsigned int dim) {
   const unsigned int pos = blockIdx.x * blockDim.x + threadIdx.x;
@@ -38,8 +42,8 @@ __host__ void gpuVectorAdd(const int *a, const int *b, int *c, const unsigned in
   HANDLE_ERROR(cudaMalloc((void**)&dev_c, size));
 
   // copy inputs to device
-  HANDLE_ERROR(cudaMemcpy(dev_a, a, size, cudaMemcpyHostToDevice));
-  HANDLE_ERROR(cudaMemcpy(dev_b, b, size, cudaMemcpyHostToDevice));
+  HANDLE_ERROR(cudaMemcpyAsync(dev_a, a, size, cudaMemcpyHostToDevice));
+  HANDLE_ERROR(cudaMemcpyAsync(dev_b, b, size, cudaMemcpyHostToDevice));
 
   // launch kernel vectorAdd()
   vectorAdd<<< gridDim, blockDim >>>(dev_a, dev_b, dev_c, vectorDim);
@@ -81,10 +85,7 @@ int main(const int argc, const char **argv) {
   }
 
   // grid settings
-  gridSize = vectorDim / blockSize;
-  if (gridSize * blockSize < vectorDim) {
-    gridSize += 1;
-  }
+  gridSize = (vectorDim + blockSize - 1) / blockSize;
   dim3 gridDim(gridSize);
   dim3 blockDim(blockSize);
 
@@ -105,9 +106,9 @@ int main(const int argc, const char **argv) {
   printf("---------------------------------\n");
 
   // allocate host copies of a, b, c
-  HANDLE_NULL(a = (int*)malloc(size));
-  HANDLE_NULL(b = (int*)malloc(size));
-  HANDLE_NULL(c = (int*)malloc(size));
+  HANDLE_ERROR(cudaMallocHost((void**)&a, size));
+  HANDLE_ERROR(cudaMallocHost((void**)&b, size));
+  HANDLE_ERROR(cudaMallocHost((void**)&c, size));
 
   // fill a, b with random data
   random_vector_int(a, vectorDim);
@@ -128,9 +129,9 @@ int main(const int argc, const char **argv) {
   }
 
   // free host
-  free(a);
-  free(b);
-  free(c);
+  HANDLE_ERROR(cudaFreeHost(a));
+  HANDLE_ERROR(cudaFreeHost(b));
+  HANDLE_ERROR(cudaFreeHost(c));
   free(expected);
 
   return 0;

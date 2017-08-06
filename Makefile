@@ -100,13 +100,13 @@ matrix_mul_nxn_int: $(MATRIX_DIR)/matrix_mul_nxn_int.cu
 ##
 # basic/vector
 ##
-vector: all_vector_add all_vector_dot
+vector: all_vector_sum all_vector_dot
 
-all_vector_add: all_vector_add_float all_vector_add_int
+all_vector_sum: all_vector_sum_float all_vector_sum_int
 
-all_vector_add_float: vector_add_float
+all_vector_sum_float: vector_sum_float vector_sum_float_opt
 
-all_vector_add_int: vector_add_int
+all_vector_sum_int: vector_sum_int vector_sum_int_opt
 
 all_vector_dot: all_vector_dot_float all_vector_dot_int
 
@@ -114,28 +114,34 @@ all_vector_dot_float: vector_dot_float_1 vector_dot_float_2 vector_dot_float_3
 
 all_vector_dot_int: vector_dot_int_1 vector_dot_int_2 vector_dot_int_3
 
-vector_add_float: $(VECTOR_DIR)/vector_add_float.cu
+vector_sum_float: $(VECTOR_DIR)/sum/vector_sum_float.cu
 	$(CC) $(CFLAGS) $(MFLAGS) $(OFLAGS) -o $(BIN)/$@ $^
 
-vector_add_int: $(VECTOR_DIR)/vector_add_int.cu
+vector_sum_float_opt: $(VECTOR_DIR)/sum/vector_sum_float_opt.cu
 	$(CC) $(CFLAGS) $(MFLAGS) $(OFLAGS) -o $(BIN)/$@ $^
 
-vector_dot_float_1: $(VECTOR_DIR)/vector_dot_float_1.cu
+vector_sum_int: $(VECTOR_DIR)/sum/vector_sum_int.cu
 	$(CC) $(CFLAGS) $(MFLAGS) $(OFLAGS) -o $(BIN)/$@ $^
 
-vector_dot_float_2: $(VECTOR_DIR)/vector_dot_float_2.cu
+vector_sum_int_opt: $(VECTOR_DIR)/sum/vector_sum_int_opt.cu
 	$(CC) $(CFLAGS) $(MFLAGS) $(OFLAGS) -o $(BIN)/$@ $^
 
-vector_dot_float_3: $(VECTOR_DIR)/vector_dot_float_3.cu
+vector_dot_float_1: $(VECTOR_DIR)/dot/vector_dot_float_1.cu
 	$(CC) $(CFLAGS) $(MFLAGS) $(OFLAGS) -o $(BIN)/$@ $^
 
-vector_dot_int_1: $(VECTOR_DIR)/vector_dot_int_1.cu
+vector_dot_float_2: $(VECTOR_DIR)/dot/vector_dot_float_2.cu
 	$(CC) $(CFLAGS) $(MFLAGS) $(OFLAGS) -o $(BIN)/$@ $^
 
-vector_dot_int_2: $(VECTOR_DIR)/vector_dot_int_2.cu
+vector_dot_float_3: $(VECTOR_DIR)/dot/vector_dot_float_3.cu
 	$(CC) $(CFLAGS) $(MFLAGS) $(OFLAGS) -o $(BIN)/$@ $^
 
-vector_dot_int_3: $(VECTOR_DIR)/vector_dot_int_3.cu
+vector_dot_int_1: $(VECTOR_DIR)/dot/vector_dot_int_1.cu
+	$(CC) $(CFLAGS) $(MFLAGS) $(OFLAGS) -o $(BIN)/$@ $^
+
+vector_dot_int_2: $(VECTOR_DIR)/dot/vector_dot_int_2.cu
+	$(CC) $(CFLAGS) $(MFLAGS) $(OFLAGS) -o $(BIN)/$@ $^
+
+vector_dot_int_3: $(VECTOR_DIR)/dot/vector_dot_int_3.cu
 	$(CC) $(CFLAGS) $(MFLAGS) $(OFLAGS) -o $(BIN)/$@ $^
 
 ##

@@ -1,26 +1,28 @@
 /*
- * @Name: vector_dot_int_2.cu
+ * @Name: vector_dot_int_3.cu
  * @Description: Vector Floating-Point Dot Product.
  * Multiple blocks, multiple threads per block.
  *
  * @Author: Giacomo Marciani <gmarciani@acm.org>
  * @Institution: University of Rome Tor Vergata
  *
- * @Usage: vector_dot_int_2 vectorDimension blockSize
+ * @Usage: vector_dot_int_3 vectorDim blockSize
  *
  * Default values:
- *  vectorDimension: 4096
- *  blockSize: 32
+ *  vectorDim: 1048576
+ *  blockSize: 256
+ *
+ * WARNING: works only if (vectorDim % blockSize) == 0
  *
  * @See: http://developer.download.nvidia.com/compute/cuda/1.1-Beta/x86_website/projects/reduction/doc/reduction.pdf
  */
 
 #include <stdio.h>
 #include <math.h>
-#include "../../common/error.h"
-#include "../../common/random.h"
-#include "../../common/vector.h"
-#include "../../common/mathutil.h"
+#include "../../../common/error.h"
+#include "../../../common/random.h"
+#include "../../../common/vector.h"
+#include "../../../common/mathutil.h"
 
 #ifdef DOUBLE
 #define REAL double
@@ -34,11 +36,11 @@ __global__ void vectorDot(const REAL *a, const REAL *b, REAL *c, const unsigned 
   extern __shared__ REAL temp[];
 
   const unsigned int tid = threadIdx.x;
-  const unsigned int pos = blockIdx.x * blockDim.x + threadIdx.x;
+  const unsigned int pos = blockIdx.x * (blockDim.x * 2) + threadIdx.x;
 
-  if (pos >= vectorDim) return;
+  if (pos + blockDim.x >= vectorDim) return;
 
-  temp[tid] = a[pos] * b[pos];
+  temp[tid] = (a[pos] * b[pos]) + (a[pos + blockDim.x] * b[pos + blockDim.x]);
 
   __syncthreads();
 
@@ -69,9 +71,9 @@ __host__ void gpuVectorDot(const REAL *a, const REAL *b, REAL *result, const uns
   HANDLE_ERROR(cudaMalloc((void**)&dev_partial, size_partial));
 
   // copy inputs to device
-  HANDLE_ERROR(cudaMemcpy(dev_a, a, size_a_b, cudaMemcpyHostToDevice));
-  HANDLE_ERROR(cudaMemcpy(dev_b, b, size_a_b, cudaMemcpyHostToDevice));
-  HANDLE_ERROR(cudaMemset(dev_partial, 0.0f, size_partial));
+  HANDLE_ERROR(cudaMemcpyAsync(dev_a, a, size_a_b, cudaMemcpyHostToDevice));
+  HANDLE_ERROR(cudaMemcpyAsync(dev_b, b, size_a_b, cudaMemcpyHostToDevice));
+  HANDLE_ERROR(cudaMemsetAsync(dev_partial, 0.0f, size_partial));
 
   // shared memory settings
   const unsigned int sharedMemSize = (unsigned int) blockDim.x * sizeof(REAL);
@@ -136,10 +138,10 @@ int main(const int argc, const char **argv) {
 
   HANDLE_ERROR(cudaGetDeviceProperties(&gpuInfo, 0));
 
-  printf("----------------------------------\n");
+  printf("----------------------------------------------\n");
   printf("Vector Floating-Point Dot Product\n");
-  printf("Reduction: sequential addressing\n");
-  printf("----------------------------------\n");
+  printf("Reduction: sequential addressing (add-on-load)\n");
+  printf("----------------------------------------------\n");
   #ifdef DOUBLE
   printf("FP Precision: Double\n");
   #else
@@ -152,7 +154,7 @@ int main(const int argc, const char **argv) {
   printf("Block Size: (%d %d %d) (max: (%d %d %d))\n",
     blockDim.x, blockDim.y, blockDim.z,
     gpuInfo.maxThreadsDim[0], gpuInfo.maxThreadsDim[1], gpuInfo.maxThreadsDim[2]);
-  printf("---------------------------------\n");
+  printf("----------------------------------------------\n");
 
   // allocate host copies of a, b, c
   HANDLE_NULL(a = (REAL*)malloc(size_a_b));

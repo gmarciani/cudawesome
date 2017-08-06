@@ -1,41 +1,43 @@
 /*
- * @Name: vector_dot_int_1.cu
- * @Description: Vector Integer Dot Product
+ * @Name: vector_dot_int_3.cu
+ * @Description: Vector Integer Dot Product.
  * Multiple blocks, multiple threads per block.
  *
  * @Author: Giacomo Marciani <gmarciani@acm.org>
  * @Institution: University of Rome Tor Vergata
  *
- * @Usage: vector_dot_int_1 vectorDimension blockSize
+ * @Usage: vector_dot_int_3 vectorDim blockSize
  *
  * Default values:
- *  vectorDimension: 4096
- *  blockSize: 32
+ *  vectorDim: 1048576
+ *  blockSize: 256
+ *
+ * WARNING: works only if (vectorDim % blockSize) == 0
  *
  * @See: http://developer.download.nvidia.com/compute/cuda/1.1-Beta/x86_website/projects/reduction/doc/reduction.pdf
  */
 
 #include <stdio.h>
 #include <math.h>
-#include "../../common/error.h"
-#include "../../common/random.h"
-#include "../../common/vector.h"
-#include "../../common/mathutil.h"
+#include "../../../common/error.h"
+#include "../../../common/random.h"
+#include "../../../common/vector.h"
+#include "../../../common/mathutil.h"
 
 __global__ void vectorDot(const int *a, const int *b, int *c, const unsigned int vectorDim) {
   extern __shared__ int temp[];
 
   const unsigned int tid = threadIdx.x;
-  const unsigned int pos = blockIdx.x * blockDim.x + threadIdx.x;
+  const unsigned int pos = blockIdx.x * (blockDim.x * 2) + threadIdx.x;
 
-  if (pos >= vectorDim) return;
+  if (pos + blockDim.x >= vectorDim) return;
 
-  temp[tid] = a[pos] * b[pos];
+  temp[tid] = (a[pos] * b[pos]) + (a[pos + blockDim.x] * b[pos + blockDim.x]);
 
   __syncthreads();
 
-  for (unsigned int stride = 1; stride < blockDim.x; stride *= 2) {
-    if (tid % (2 * stride) == 0) {
+  for (unsigned int stride = blockDim.x / 2; stride > 0; stride >>= 1) {
+    if (tid < stride) {
       temp[tid] += temp[tid + stride];
     }
     __syncthreads();
@@ -61,9 +63,9 @@ __host__ void gpuVectorDot(const int *a, const int *b, int *result, const unsign
   HANDLE_ERROR(cudaMalloc((void**)&dev_partial, size_partial));
 
   // copy inputs to device
-  HANDLE_ERROR(cudaMemcpy(dev_a, a, size_a_b, cudaMemcpyHostToDevice));
-  HANDLE_ERROR(cudaMemcpy(dev_b, b, size_a_b, cudaMemcpyHostToDevice));
-  HANDLE_ERROR(cudaMemset(dev_partial, 0, size_partial));
+  HANDLE_ERROR(cudaMemcpyAsync(dev_a, a, size_a_b, cudaMemcpyHostToDevice));
+  HANDLE_ERROR(cudaMemcpyAsync(dev_b, b, size_a_b, cudaMemcpyHostToDevice));
+  HANDLE_ERROR(cudaMemsetAsync(dev_partial, 0, size_partial));
 
   // shared memory settings
   const unsigned int sharedMemSize = (unsigned int) blockDim.x * sizeof(int);
@@ -130,7 +132,7 @@ int main(const int argc, const char **argv) {
 
   printf("----------------------------------\n");
   printf("Vector Integer Dot Product\n");
-  printf("Reduction: interleaving addressing\n");
+  printf("Reduction: sequential addressing (add-on-load)\n");
   printf("----------------------------------\n");
   printf("Vector Dimension: %d\n", vectorDim);
   printf("Grid Size: (%d %d %d) (max: (%d %d %d))\n",

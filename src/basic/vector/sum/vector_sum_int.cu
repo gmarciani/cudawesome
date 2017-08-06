@@ -1,34 +1,30 @@
 /*
- * @Name: vector_add_float.cu
- * @Description: Vector Floating-Point Sum
+ * @Name: vector_sum_int.cu
+ * @Description: Vector Integer Sum.
  * Custom vector dimension and block size.
  *
  * @Author: Giacomo Marciani <gmarciani@acm.org>
  * @Institution: University of Rome Tor Vergata
  *
- * @Usage: vector_add_float vectorDimension blockSize
+ * @Usage: vector_sum_int vectorDim blockSize
  *
  * Default values:
- *  vectorDimension: 4096
- *  blockSize: 32
+ *  vectorDim: 1048576
+ *  blockSize: 256
+ *
+ * @Note: possible optimizations are:
+ *  gride-stride loops: https://devblogs.nvidia.com/parallelforall/cuda-pro-tip-write-flexible-kernels-grid-stride-loops/
+ *
  */
 
 #include <stdio.h>
 #include <math.h>
-#include "../../common/error.h"
-#include "../../common/random.h"
-#include "../../common/vector.h"
-#include "../../common/mathutil.h"
+#include "../../../common/error.h"
+#include "../../../common/random.h"
+#include "../../../common/vector.h"
+#include "../../../common/mathutil.h"
 
-#ifdef DOUBLE
-#define REAL double
-#else
-#define REAL float
-#endif
-
-#define EPSILON (float)1e-5
-
-__global__ void vectorAdd(const REAL *a, const REAL *b, REAL *c, const unsigned int dim) {
+__global__ void vectorAdd(const int *a, const int *b, int *c, const unsigned int dim) {
   const unsigned int pos = blockIdx.x * blockDim.x + threadIdx.x;
 
   if (pos >= dim) return;
@@ -36,9 +32,9 @@ __global__ void vectorAdd(const REAL *a, const REAL *b, REAL *c, const unsigned 
   c[pos] = a[pos] + b[pos];
 }
 
-__host__ void gpuVectorAdd(const REAL *a, const REAL *b, REAL *c, const unsigned int vectorDim, const dim3 gridDim, const dim3 blockDim) {
-  REAL *dev_a, *dev_b, *dev_c; // device copies of a, b, c
-  const unsigned int size = vectorDim * sizeof(REAL); // bytes for a, b, c
+__host__ void gpuVectorAdd(const int *a, const int *b, int *c, const unsigned int vectorDim, const dim3 gridDim, const dim3 blockDim) {
+  int *dev_a, *dev_b, *dev_c; // device copies of a, b, c
+  const unsigned int size = vectorDim * sizeof(int); // bytes for a, b, c
 
   // allocate device copies of a, b, c
   HANDLE_ERROR(cudaMalloc((void**)&dev_a, size));
@@ -62,7 +58,7 @@ __host__ void gpuVectorAdd(const REAL *a, const REAL *b, REAL *c, const unsigned
 }
 
 int main(const int argc, const char **argv) {
-  REAL *a, *b, *c;   // host copies of a, b, c
+  int *a, *b, *c;    // host copies of a, b, c
   unsigned int size; // bytes for a, b, c
   unsigned int vectorDim; // vector dimension
   unsigned int gridSize;  // grid size
@@ -89,25 +85,17 @@ int main(const int argc, const char **argv) {
   }
 
   // grid settings
-  gridSize = vectorDim / blockSize;
-  if (gridSize * blockSize < vectorDim) {
-    gridSize += 1;
-  }
+  gridSize = (vectorDim + blockSize - 1) / blockSize;
   dim3 gridDim(gridSize);
   dim3 blockDim(blockSize);
 
-  size = vectorDim * sizeof(REAL);
+  size = vectorDim * sizeof(int);
 
   HANDLE_ERROR(cudaGetDeviceProperties(&gpuInfo, 0));
 
   printf("----------------------------------\n");
-  printf("Vector Floating-Point Sum\n");
+  printf("Vector Integer Sum\n");
   printf("----------------------------------\n");
-  #ifdef DOUBLE
-  printf("FP Precision: Double\n");
-  #else
-  printf("FP Precision: Single\n");
-  #endif
   printf("Vector Dimension: %d\n", vectorDim);
   printf("Grid Size: (%d %d %d) (max: (%d %d %d))\n",
     gridDim.x, gridDim.y, gridDim.z,
@@ -118,32 +106,22 @@ int main(const int argc, const char **argv) {
   printf("---------------------------------\n");
 
   // allocate host copies of a, b, c
-  HANDLE_NULL(a = (REAL*)malloc(size));
-  HANDLE_NULL(b = (REAL*)malloc(size));
-  HANDLE_NULL(c = (REAL*)malloc(size));
+  HANDLE_NULL(a = (int*)malloc(size));
+  HANDLE_NULL(b = (int*)malloc(size));
+  HANDLE_NULL(c = (int*)malloc(size));
 
   // fill a, b with random data
-  #ifdef DOUBLE
-  random_vector_double(a, vectorDim);
-  random_vector_double(b, vectorDim);
-  #else
-  random_vector_float(a, vectorDim);
-  random_vector_float(b, vectorDim);
-  #endif
+  random_vector_int(a, vectorDim);
+  random_vector_int(b, vectorDim);
 
   // launch kernel vectorAdd()
   gpuVectorAdd(a, b, c, vectorDim, gridDim, blockDim);
 
   // test result
-  REAL *expected;
-  HANDLE_NULL(expected = (REAL*)malloc(size));
-  #ifdef DOUBLE
-  vector_add_double(a, b, expected, vectorDim);
-  const bool correct = vector_equals_err_double(c, expected, vectorDim, EPSILON);
-  #else
-  vector_add_float(a, b, expected, vectorDim);
-  const bool correct = vector_equals_err_float(c, expected, vectorDim, EPSILON);
-  #endif
+  int *expected;
+  HANDLE_NULL(expected = (int*)malloc(size));
+  vector_add_int(a, b, expected, vectorDim);
+  const bool correct = vector_equals_int(c, expected, vectorDim);
   if (!correct) {
     fprintf(stderr, "Error\n");
   } else {
