@@ -9,16 +9,14 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-__global__ void foo(void) {
-
-}
+#include "include_c/cpu_functions.h"
+#include "include_cu/gpu_functions.cuh"
 
 int main(void) {
-  // launch foo() kernel
-  foo<<< 1, 1 >>>();
 
-  // print result
-  printf("Hello world!\n");
+  helloGPU();
+
+  helloCPU();
 
   return 0;
 }

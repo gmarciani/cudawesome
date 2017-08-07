@@ -1,10 +1,6 @@
 CC=nvcc
 
-CFLAGS= --machine 64 --gpu-architecture=sm_35 --compiler-options -Wall,-Wno-unused-function
-
-MFLAGS= --define-macro FLOAT
-
-OFLAGS= --optimize 3
+CFLAGS= --machine 64 --gpu-architecture=sm_35 --compiler-options -Wall,-Wno-unused-function -x cu --optimize 3 --define-macro FLOAT
 
 DFLAGS= --debug --device-debug
 
@@ -14,9 +10,9 @@ SRC=./src
 
 BIN=./bin
 
-.PHONY: all clean dir
+.PHONY: all clean makedirs
 
-all: dir basic info
+all: makedirs basic info
 
 ##
 # directories
@@ -26,8 +22,13 @@ INTEGER_DIR=$(BASIC_DIR)/integer
 MATRIX_DIR=$(BASIC_DIR)/matrix
 VECTOR_DIR=$(BASIC_DIR)/vector
 INFO_DIR=$(SRC)/info
-dir:
+SCAFFOLDING_DIR=$(SRC)/scaffolding
+
+makedirs:
 	mkdir -p $(BIN)
+
+clean:
+	rm -rf $(BIN)
 
 ##
 # info
@@ -35,15 +36,18 @@ dir:
 info: gpu_info
 
 gpu_info: $(INFO_DIR)/gpu_info.cu
-	$(CC) $(CFLAGS) $(MFLAGS) $(OFLAGS) -o $(BIN)/$@ $^
+	$(CC) $(CFLAGS) -o $(BIN)/$@ $^
+
+##
+# scaffolding
+##
+hello_world: $(SCAFFOLDING_DIR)/hello_world.cu $(SCAFFOLDING_DIR)/include_cu/gpu_functions.cu $(SCAFFOLDING_DIR)/include_c/cpu_functions.c
+	$(CC) $(CFLAGS) -o $(BIN)/$@ $^ --include-path $(SCAFFOLDING_DIR)
 
 ##
 # basic
 ##
-basic: hello_world integer vector matrix
-
-hello_world: $(BASIC_DIR)/hello_world.cu
-	$(CC) $(CFLAGS) $(MFLAGS) $(OFLAGS) -o $(BIN)/$@ $^
+basic: integer vector matrix
 
 ##
 # basic/integer
@@ -51,10 +55,10 @@ hello_world: $(BASIC_DIR)/hello_world.cu
 integer: integer_add_ptr integer_add
 
 integer_add_ptr: $(INTEGER_DIR)/integer_add_ptr.cu
-	$(CC) $(CFLAGS) $(MFLAGS) $(OFLAGS) -o $(BIN)/$@ $^
+	$(CC) $(CFLAGS) -o $(BIN)/$@ $^
 
 integer_add: $(INTEGER_DIR)/integer_add.cu
-	$(CC) $(CFLAGS) $(MFLAGS) $(OFLAGS) -o $(BIN)/$@ $^
+	$(CC) $(CFLAGS) -o $(BIN)/$@ $^
 
 ##
 # basic/matrix
@@ -74,28 +78,28 @@ all_matrix_mul_float: matrix_mul_nxm_float matrix_mul_nxn_float
 all_matrix_mul_int: matrix_mul_nxm_int matrix_mul_nxn_int
 
 matrix_add_nxm_float: $(MATRIX_DIR)/matrix_add_nxm_float.cu
-	$(CC) $(CFLAGS) $(MFLAGS) $(OFLAGS) -o $(BIN)/$@ $^
+	$(CC) $(CFLAGS) -o $(BIN)/$@ $^
 
 matrix_add_nxn_float: $(MATRIX_DIR)/matrix_add_nxn_float.cu
-	$(CC) $(CFLAGS) $(MFLAGS) $(OFLAGS) -o $(BIN)/$@ $^
+	$(CC) $(CFLAGS) -o $(BIN)/$@ $^
 
 matrix_add_nxm_int: $(MATRIX_DIR)/matrix_add_nxm_int.cu
-	$(CC) $(CFLAGS) $(MFLAGS) $(OFLAGS) -o $(BIN)/$@ $^
+	$(CC) $(CFLAGS) -o $(BIN)/$@ $^
 
 matrix_add_nxn_int: $(MATRIX_DIR)/matrix_add_nxn_int.cu
-	$(CC) $(CFLAGS) $(MFLAGS) $(OFLAGS) -o $(BIN)/$@ $^
+	$(CC) $(CFLAGS) -o $(BIN)/$@ $^
 
 matrix_mul_nxm_float: $(MATRIX_DIR)/matrix_mul_nxm_float.cu
-	$(CC) $(CFLAGS) $(MFLAGS) $(OFLAGS) -o $(BIN)/$@ $^
+	$(CC) $(CFLAGS) -o $(BIN)/$@ $^
 
 matrix_mul_nxn_float: $(MATRIX_DIR)/matrix_mul_nxn_float.cu
-	$(CC) $(CFLAGS) $(MFLAGS) $(OFLAGS) -o $(BIN)/$@ $^
+	$(CC) $(CFLAGS) -o $(BIN)/$@ $^
 
 matrix_mul_nxm_int: $(MATRIX_DIR)/matrix_mul_nxm_int.cu
-	$(CC) $(CFLAGS) $(MFLAGS) $(OFLAGS) -o $(BIN)/$@ $^
+	$(CC) $(CFLAGS) -o $(BIN)/$@ $^
 
 matrix_mul_nxn_int: $(MATRIX_DIR)/matrix_mul_nxn_int.cu
-	$(CC) $(CFLAGS) $(MFLAGS) $(OFLAGS) -o $(BIN)/$@ $^
+	$(CC) $(CFLAGS) -o $(BIN)/$@ $^
 
 ##
 # basic/vector
@@ -115,37 +119,35 @@ all_vector_dot_float: vector_dot_float_1 vector_dot_float_2 vector_dot_float_3
 all_vector_dot_int: vector_dot_int_1 vector_dot_int_2 vector_dot_int_3
 
 vector_sum_float: $(VECTOR_DIR)/sum/vector_sum_float.cu
-	$(CC) $(CFLAGS) $(MFLAGS) $(OFLAGS) -o $(BIN)/$@ $^
+	$(CC) $(CFLAGS) -o $(BIN)/$@ $^
 
 vector_sum_float_opt: $(VECTOR_DIR)/sum/vector_sum_float_opt.cu
-	$(CC) $(CFLAGS) $(MFLAGS) $(OFLAGS) -o $(BIN)/$@ $^
+	$(CC) $(CFLAGS) -o $(BIN)/$@ $^
 
 vector_sum_int: $(VECTOR_DIR)/sum/vector_sum_int.cu
-	$(CC) $(CFLAGS) $(MFLAGS) $(OFLAGS) -o $(BIN)/$@ $^
+	$(CC) $(CFLAGS) -o $(BIN)/$@ $^
 
 vector_sum_int_opt: $(VECTOR_DIR)/sum/vector_sum_int_opt.cu
-	$(CC) $(CFLAGS) $(MFLAGS) $(OFLAGS) -o $(BIN)/$@ $^
+	$(CC) $(CFLAGS) -o $(BIN)/$@ $^
 
 vector_dot_float_1: $(VECTOR_DIR)/dot/vector_dot_float_1.cu
-	$(CC) $(CFLAGS) $(MFLAGS) $(OFLAGS) -o $(BIN)/$@ $^
+	$(CC) $(CFLAGS) -o $(BIN)/$@ $^
 
 vector_dot_float_2: $(VECTOR_DIR)/dot/vector_dot_float_2.cu
-	$(CC) $(CFLAGS) $(MFLAGS) $(OFLAGS) -o $(BIN)/$@ $^
+	$(CC) $(CFLAGS) -o $(BIN)/$@ $^
 
 vector_dot_float_3: $(VECTOR_DIR)/dot/vector_dot_float_3.cu
-	$(CC) $(CFLAGS) $(MFLAGS) $(OFLAGS) -o $(BIN)/$@ $^
+	$(CC) $(CFLAGS) -o $(BIN)/$@ $^
 
 vector_dot_int_1: $(VECTOR_DIR)/dot/vector_dot_int_1.cu
-	$(CC) $(CFLAGS) $(MFLAGS) $(OFLAGS) -o $(BIN)/$@ $^
+	$(CC) $(CFLAGS) -o $(BIN)/$@ $^
 
 vector_dot_int_2: $(VECTOR_DIR)/dot/vector_dot_int_2.cu
-	$(CC) $(CFLAGS) $(MFLAGS) $(OFLAGS) -o $(BIN)/$@ $^
+	$(CC) $(CFLAGS) -o $(BIN)/$@ $^
 
 vector_dot_int_3: $(VECTOR_DIR)/dot/vector_dot_int_3.cu
-	$(CC) $(CFLAGS) $(MFLAGS) $(OFLAGS) -o $(BIN)/$@ $^
+	$(CC) $(CFLAGS) -o $(BIN)/$@ $^
 
 ##
 # clean
 ##
-clean:
-	rm -rf $(BIN)
