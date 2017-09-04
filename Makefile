@@ -21,6 +21,7 @@ BASIC_DIR=$(SRC)/basic
 INTEGER_DIR=$(BASIC_DIR)/integer
 MATRIX_DIR=$(BASIC_DIR)/matrix
 VECTOR_DIR=$(BASIC_DIR)/vector
+RAND_DIR=$(BASIC_DIR)/rand
 INFO_DIR=$(SRC)/info
 SCAFFOLDING_DIR=$(SRC)/scaffolding
 
@@ -47,7 +48,7 @@ hello_world: $(SCAFFOLDING_DIR)/hello_world.cu $(SCAFFOLDING_DIR)/include_cu/gpu
 ##
 # basic
 ##
-basic: integer vector matrix
+basic: integer vector matrix rand
 
 ##
 # basic/integer
@@ -63,7 +64,9 @@ integer_add: $(INTEGER_DIR)/integer_add.cu
 ##
 # basic/matrix
 ##
-matrix: all_matrix_add all_matrix_mul
+matrix: all_matrix_transfer all_matrix_add all_matrix_mul
+
+all_matrix_transfer: matrix_transfer_2d
 
 all_matrix_add: all_matrix_add_float all_matrix_add_int
 
@@ -76,6 +79,9 @@ all_matrix_mul: all_matrix_mul_float all_matrix_mul_int
 all_matrix_mul_float: matrix_mul_nxm_float matrix_mul_nxn_float
 
 all_matrix_mul_int: matrix_mul_nxm_int matrix_mul_nxn_int
+
+matrix_transfer_2d: $(MATRIX_DIR)/matrix_transfer_2d.cu
+	$(CC) $(CFLAGS) -o $(BIN)/$@ $^
 
 matrix_add_nxm_float: $(MATRIX_DIR)/matrix_add_nxm_float.cu
 	$(CC) $(CFLAGS) -o $(BIN)/$@ $^
@@ -146,6 +152,12 @@ vector_dot_int_2: $(VECTOR_DIR)/dot/vector_dot_int_2.cu
 	$(CC) $(CFLAGS) -o $(BIN)/$@ $^
 
 vector_dot_int_3: $(VECTOR_DIR)/dot/vector_dot_int_3.cu
+	$(CC) $(CFLAGS) -o $(BIN)/$@ $^
+
+##
+# basic/rand
+##
+rand: $(RAND_DIR)/curand.cu
 	$(CC) $(CFLAGS) -o $(BIN)/$@ $^
 
 ##
