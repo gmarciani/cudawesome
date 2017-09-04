@@ -79,6 +79,56 @@ static void random_matrix_short_2d(short **a, const unsigned int rows, const uns
   }
 }
 
+static void random_matrix_double_3d(double ***a, const unsigned int rows, const unsigned int cols, const unsigned int dimz) {
+  for (unsigned int z = 0; z < dimz; z++) {
+    for (unsigned int r = 0; r < rows; r++) {
+      for (unsigned int c = 0; c < cols; c++) {
+        a[z][r][c] = (double) rand();
+      }
+    }
+  }
+}
+
+static void random_matrix_float_3d(float ***a, const unsigned int rows, const unsigned int cols, const unsigned int dimz) {
+  for (unsigned int z = 0; z < dimz; z++) {
+    for (unsigned int r = 0; r < rows; r++) {
+      for (unsigned int c = 0; c < cols; c++) {
+        a[z][r][c] = (float) rand();
+      }
+    }
+  }
+}
+
+static void random_matrix_int_3d(int ***a, const unsigned int rows, const unsigned int cols, const unsigned int dimz) {
+  for (unsigned int z = 0; z < dimz; z++) {
+    for (unsigned int r = 0; r < rows; r++) {
+      for (unsigned int c = 0; c < cols; c++) {
+        a[z][r][c] = (int) rand();
+      }
+    }
+  }
+}
+
+static void random_matrix_long_3d(long ***a, const unsigned int rows, const unsigned int cols, const unsigned int dimz) {
+  for (unsigned int z = 0; z < dimz; z++) {
+    for (unsigned int r = 0; r < rows; r++) {
+      for (unsigned int c = 0; c < cols; c++) {
+        a[z][r][c] = (long) rand();
+      }
+    }
+  }
+}
+
+static void random_matrix_short_3d(short ***a, const unsigned int rows, const unsigned int cols, const unsigned int dimz) {
+  for (unsigned int z = 0; z < dimz; z++) {
+    for (unsigned int r = 0; r < rows; r++) {
+      for (unsigned int c = 0; c < cols; c++) {
+        a[z][r][c] = (short) rand();
+      }
+    }
+  }
+}
+
 static void random_vector_double(double *a, const unsigned int n) {
   for (unsigned int i = 0; i < n; i++) {
     a[i] = (double) rand();

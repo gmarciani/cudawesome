@@ -66,7 +66,7 @@ integer_add: $(INTEGER_DIR)/integer_add.cu
 ##
 matrix: all_matrix_transfer all_matrix_add all_matrix_mul
 
-all_matrix_transfer: matrix_transfer_2d
+all_matrix_transfer: matrix_transfer_2d matrix_transfer_3d
 
 all_matrix_add: all_matrix_add_float all_matrix_add_int
 
@@ -81,6 +81,9 @@ all_matrix_mul_float: matrix_mul_nxm_float matrix_mul_nxn_float
 all_matrix_mul_int: matrix_mul_nxm_int matrix_mul_nxn_int
 
 matrix_transfer_2d: $(MATRIX_DIR)/matrix_transfer_2d.cu
+	$(CC) $(CFLAGS) -o $(BIN)/$@ $^
+
+matrix_transfer_3d: $(MATRIX_DIR)/matrix_transfer_3d.cu
 	$(CC) $(CFLAGS) -o $(BIN)/$@ $^
 
 matrix_add_nxm_float: $(MATRIX_DIR)/matrix_add_nxm_float.cu

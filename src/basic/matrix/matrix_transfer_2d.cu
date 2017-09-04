@@ -26,10 +26,10 @@
 #endif
 
 __global__ void matrixCopy(REAL *a, REAL *b, const unsigned int matrixRows, const unsigned int matrixCols) {
-  const unsigned int col = blockIdx.x * blockDim.x + threadIdx.x;
   const unsigned int row = blockIdx.y * blockDim.y + threadIdx.y;
+  const unsigned int col = blockIdx.x * blockDim.x + threadIdx.x;
 
-  if (col >= matrixCols || row >= matrixRows) return;
+  if (row >= matrixRows || col >= matrixCols) return;
 
   const unsigned int pos = row * matrixCols + col;
 
@@ -39,14 +39,13 @@ __global__ void matrixCopy(REAL *a, REAL *b, const unsigned int matrixRows, cons
 __host__ void gpuMatrixCopy(REAL **a, REAL **b, const unsigned int matrixRows, const unsigned int matrixCols, const dim3 gridDim, const dim3 blockDim) {
   REAL *dev_a = NULL; // device copies of a, b
   REAL *dev_b = NULL; // device copies of a, b
-  const size_t size_a = matrixRows * matrixCols * sizeof(REAL); // bytes for a
-  const size_t size_b = matrixRows * matrixCols * sizeof(REAL); // bytes for b
-  const size_t sizeX = matrixCols * sizeof(REAL); // bytes for b
+  const size_t size = matrixRows * matrixCols * sizeof(REAL); // bytes for a, b
+  const size_t sizeX = matrixCols * sizeof(REAL); // bytes for a, b (dimension X)
   unsigned int r; // indices
 
   // allocate device copies of a, b
-  HANDLE_ERROR(cudaMalloc((void**)&dev_a, size_a));
-  HANDLE_ERROR(cudaMalloc((void**)&dev_b, size_b));
+  HANDLE_ERROR(cudaMalloc((void**)&dev_a, size));
+  HANDLE_ERROR(cudaMalloc((void**)&dev_b, size));
 
   // copy inputs to device
   for (r = 0; r < matrixRows; r++) {
@@ -117,9 +116,9 @@ int main(const int argc, const char **argv) {
 
   HANDLE_ERROR(cudaGetDeviceProperties(&gpuInfo, 0));
 
-  printf("------------------------------------\n");
+  printf("---------------------------------------\n");
   printf("2D Matrix (NxM) Floating-Point Transfer\n");
-  printf("------------------------------------\n");
+  printf("---------------------------------------\n");
   #ifdef DOUBLE
   printf("FP Precision: Double\n");
   #else
