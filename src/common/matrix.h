@@ -57,8 +57,8 @@ static bool matrix_equals_float(const float *actual, const float *expected, cons
   return true;
 }
 
-static bool matrix_equals_int(const int *actual, const int *expected, const unsigned int dimX, const unsigned int dimY) {
-  for (unsigned int i = 0; i < dimX * dimY; i++) {
+static bool matrix_equals_int(const int *actual, const int *expected, const int dimX, const int dimY) {
+  for (int i = 0; i < dimX * dimY; i++) {
     if (actual[i] != expected[i]) {
       return false;
     }
@@ -209,6 +209,33 @@ static void matrix_print_int(const char *name, const int *a, const unsigned int 
   printf("%s=[\n", name);
   for (unsigned int i = 0; i < dimX * dimY; i++) {
     printf("%d ", a[i]);
+  }
+  printf("]\n");
+}
+
+static void matrix_pprint_int_2(const char *name, const int *a, const int rows, const int cols) {
+  printf("%s=[\n", name);
+  for (int r = 0; r < rows; r++) {
+    for (int c = 0; c < cols; c++) {
+      const int pos = (r * cols) + c;
+      printf("%d ", a[pos]);
+    }
+    printf("\n");
+  }
+  printf("]\n");
+}
+
+static void matrix_pprint_int_3(const char *name, const int *a, const int rows, const int cols, const int dimz) {
+  printf("%s=[\n", name);
+  for (int z = 0; z < dimz; z++) {
+    for (int r = 0; r < rows; r++) {
+      for (int c = 0; c < cols; c++) {
+        const int pos = (z * rows * cols) + (r * cols) + c;
+        printf("%d ", a[pos]);
+      }
+      printf("\n");
+    }
+    printf("---\n");
   }
   printf("]\n");
 }

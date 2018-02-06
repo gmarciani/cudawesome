@@ -22,6 +22,9 @@
 #include "../../common/random.h"
 #include "../../common/matrix.h"
 
+
+#define MAX_BLOCK_SIZE 1024
+
 __global__ void matrixAdd(const int *a, const int *b, int *c, const unsigned int dimX, const unsigned int dimY) {
   const unsigned int iX = blockIdx.x * blockDim.x + threadIdx.x;
   const unsigned int iY = blockIdx.y * blockDim.y + threadIdx.y;
@@ -36,6 +39,8 @@ __host__ void gpuMatrixAdd(const int *a, const int *b, int *c, const unsigned in
   int *dev_a, *dev_b, *dev_c; // device copies of a, b, c
   const unsigned int size = matrixDimX * matrixDimY * sizeof(int); // bytes for a, b, c
 
+  cudaError_t err;
+
   // allocate device copies of a, b, c
   HANDLE_ERROR(cudaMalloc((void**)&dev_a, size));
   HANDLE_ERROR(cudaMalloc((void**)&dev_b, size));
@@ -47,6 +52,11 @@ __host__ void gpuMatrixAdd(const int *a, const int *b, int *c, const unsigned in
 
   // launch kernel matrixAdd()
   matrixAdd<<< gridDim, blockDim >>>(dev_a, dev_b, dev_c, matrixDimX, matrixDimY);
+
+  err = cudaGetLastError();
+  if ( err != cudaSuccess ) {
+    printf("Error matrixAdd :: grid(%d,%d,%d) | block(%d,%d,%d) :: %s\n", gridDim.x, gridDim.y, gridDim.z, blockDim.x, blockDim.y, blockDim.z, cudaGetErrorString(err));
+  }
 
   // copy device result back to host copy of c
   HANDLE_ERROR(cudaMemcpy(c, dev_c, size, cudaMemcpyDeviceToHost));
@@ -61,7 +71,6 @@ int main(const int argc, const char **argv) {
   int *a, *b, *c;             // host copies of a, b, c
   unsigned int size; // bytes for a, b, c
   unsigned int matrixDimX, matrixDimY; // matrix dimensions
-  unsigned int gridSizeX, gridSizeY; // grid size
   unsigned int blockSize; // block size
   cudaDeviceProp gpuInfo; // gpu properties
 
@@ -85,22 +94,25 @@ int main(const int argc, const char **argv) {
     exit(1);
   }
 
-  if (blockSize < 1) {
-    fprintf(stderr, "Error: blockSize expected >= 1, got %d\n", blockSize);
+  if (blockSize < 1 || blockSize > MAX_BLOCK_SIZE) {
+    fprintf(stderr, "Error: blockSize expected >= 1 and <= %d, got %d\n", MAX_BLOCK_SIZE, blockSize);
     exit(1);
   }
 
   // grid settings
-  gridSizeX = matrixDimX / blockSize;
-  if (gridSizeX * blockSize < matrixDimX) {
-     gridSizeX += 1;
+  dim3 gridDim(1, 1, 1);
+  dim3 blockDim(1, 1, 1);
+
+  if (matrixDimX >= matrixDimY) {
+    blockDim.y = pow(blockSize, 1/2.);
+    blockDim.x = blockSize / blockDim.y;
+  } else {
+    blockDim.x = pow(blockSize, 1/2.);
+    blockDim.y = blockSize / blockDim.x;
   }
-  gridSizeY = matrixDimY / blockSize;
-  if (gridSizeY * blockSize < matrixDimY) {
-     gridSizeY += 1;
-  }
-  dim3 gridDim(gridSizeX, gridSizeY);
-  dim3 blockDim(blockSize, blockSize);
+
+  gridDim.x = 1 + ((matrixDimX - 1) / blockDim.x);
+  gridDim.y = 1 + ((matrixDimY - 1) / blockDim.y);
 
   size = matrixDimX * matrixDimY * sizeof(int);
 
@@ -110,6 +122,7 @@ int main(const int argc, const char **argv) {
   printf("Matrix (NxM) Integer Sum\n");
   printf("------------------------------------\n");
   printf("Matrix Dimension: (%d, %d)\n", matrixDimX, matrixDimY);
+  printf("Threads per block: %d\n", blockSize);
   printf("Grid Size: (%d, %d, %d) (max: (%d, %d, %d))\n",
     gridDim.x, gridDim.y, gridDim.z,
     gpuInfo.maxGridSize[0], gpuInfo.maxGridSize[1], gpuInfo.maxGridSize[2]);

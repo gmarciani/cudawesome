@@ -9,6 +9,13 @@
 #ifndef __RANDOM_H__
 #define __RANDOM_H__
 
+#define MIN 1
+#define MAX 10
+
+static int random_int(const int min, const int max) {
+  return (rand() % (max + 1 - min)) + min;
+}
+
 static void random_matrix_double(double *a, const unsigned int rows, const unsigned int cols) {
   for (unsigned int i = 0; i < rows * cols; i++) {
     a[i] = (double) rand();
@@ -23,7 +30,27 @@ static void random_matrix_float(float *a, const unsigned int rows, const unsigne
 
 static void random_matrix_int(int *a, const unsigned int rows, const unsigned int cols) {
   for (unsigned int i = 0; i < rows * cols; i++) {
-    a[i] = rand();
+    a[i] = random_int(MIN, MAX);
+  }
+}
+
+static void random_matrix_int_2(int *a, const int rows, const int cols) {
+  for (int r = 0; r < rows; r++) {
+    for (int c = 0; c < cols; c++) {
+      const int pos = (r * cols) + c;
+      a[pos] = random_int(MIN, MAX);
+    }
+  }
+}
+
+static void random_matrix_int_3(int *a, const int rows, const int cols, const int dimz) {
+  for (int z = 0; z < dimz; z++) {
+    for (int r = 0; r < rows; r++) {
+      for (int c = 0; c < cols; c++) {
+        const int pos = (z * rows * cols) + (r * cols) + c;
+        a[pos] = random_int(MIN, MAX);
+      }
+    }
   }
 }
 

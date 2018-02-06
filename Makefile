@@ -24,6 +24,7 @@ VECTOR_DIR=$(BASIC_DIR)/vector
 RAND_DIR=$(BASIC_DIR)/rand
 INFO_DIR=$(SRC)/info
 SCAFFOLDING_DIR=$(SRC)/scaffolding
+FLOW_DIR=$(SRC)/flow
 
 makedirs:
 	mkdir -p $(BIN)
@@ -44,6 +45,13 @@ gpu_info: $(INFO_DIR)/gpu_info.cu
 ##
 hello_world: $(SCAFFOLDING_DIR)/hello_world.cu $(SCAFFOLDING_DIR)/include_cu/gpu_functions.cu $(SCAFFOLDING_DIR)/include_c/cpu_functions.c
 	$(CC) $(CFLAGS) -o $(BIN)/$@ $^ --include-path $(SCAFFOLDING_DIR)
+
+
+##
+# flow
+##
+sync_async: $(FLOW_DIR)/sync_async.cu
+	$(CC) $(CFLAGS) -o $(BIN)/$@ $^ --include-path $(FLOW_DIR)
 
 ##
 # basic
@@ -108,6 +116,9 @@ matrix_mul_nxm_int: $(MATRIX_DIR)/matrix_mul_nxm_int.cu
 	$(CC) $(CFLAGS) -o $(BIN)/$@ $^
 
 matrix_mul_nxn_int: $(MATRIX_DIR)/matrix_mul_nxn_int.cu
+	$(CC) $(CFLAGS) -o $(BIN)/$@ $^
+
+matrix_initadd_int: $(MATRIX_DIR)/matrix_initadd_int.cu
 	$(CC) $(CFLAGS) -o $(BIN)/$@ $^
 
 ##
